@@ -24,6 +24,7 @@ import {
   createManagedUser,
   listManagedUsers,
   resetManagedUserPassword,
+  setManagedUserActive,
   updateManagedUser,
 } from './services/userService';
 import type {
@@ -245,6 +246,39 @@ export function App() {
     } catch (error) {
       await showError('แก้ไขผู้ใช้ไม่สำเร็จ', error);
       return false;
+    } finally {
+      setUsersLoading(false);
+    }
+  }
+
+  async function handleToggleUserActive(managedUser: ManagedUser) {
+    const willActivate = !managedUser.isActive;
+    const result = await Swal.fire({
+      icon: willActivate ? 'question' : 'warning',
+      title: willActivate
+        ? `เปิดใช้งานบัญชี @${managedUser.username}?`
+        : `ปิดใช้งานบัญชี @${managedUser.username}?`,
+      text: willActivate
+        ? 'ผู้ใช้นี้จะสามารถเข้าสู่ระบบได้อีกครั้ง'
+        : 'ผู้ใช้นี้จะไม่สามารถเข้าสู่ระบบได้จนกว่าจะเปิดใช้งานอีกครั้ง',
+      showCancelButton: true,
+      confirmButtonColor: willActivate ? '#2563eb' : '#e11d48',
+      cancelButtonColor: '#94a3b8',
+      confirmButtonText: willActivate ? 'เปิดใช้งาน' : 'ปิดใช้งาน',
+      cancelButtonText: 'ยกเลิก',
+      reverseButtons: true,
+    });
+    if (!result.isConfirmed) return;
+
+    try {
+      setUsersLoading(true);
+      const updated = await setManagedUserActive(managedUser.id, willActivate);
+      setManagedUsers((current) =>
+        current.map((u) => (u.id === updated.id ? updated : u)),
+      );
+      showToast(willActivate ? 'เปิดใช้งานบัญชีสำเร็จ' : 'ปิดใช้งานบัญชีสำเร็จ');
+    } catch (error) {
+      await showError('ดำเนินการไม่สำเร็จ', error);
     } finally {
       setUsersLoading(false);
     }
@@ -629,7 +663,7 @@ export function App() {
       {route === 'create' && <CreateTicketPage form={form} loading={loading} onFieldChange={(field, value) => setForm((current) => ({ ...current, [field]: value }))} onItemChange={(itemId, field, value) => setForm((current) => ({ ...current, items: current.items.map((item) => item.id === itemId ? { ...item, [field]: value } : item) }))} onAddItem={() => setForm((current) => ({ ...current, items: [...current.items, newFormItem()] }))} onRemoveItem={(id) => void handleRemoveItem(id)} onCancel={() => void handleCancelCreate()} onSave={() => void handleCreateTicket()} />}
       {route === 'list' && <TicketListPage tickets={tickets} query={query} statusFilter={statusFilter} onQueryChange={setQuery} onStatusChange={setStatusFilter} onCreate={() => navigate('create')} onView={(id) => navigate('detail', id)} onPrint={(id) => navigate('print', id)} />}
       {route === 'detail' && activeTicket && <TicketDetailPage ticket={activeTicket} loading={loading} onBack={() => navigate('list')} onPrint={() => navigate('print', activeTicket.id)} onStatusChange={(status) => void handleStatusChange(status)} />}
-      {route === 'users' && user.role === 'admin' && <UserManagementPage users={managedUsers} loading={usersLoading} currentUserId={user.id} onRefresh={loadUsers} onCreate={handleCreateUser} onUpdate={handleUpdateUser} onResetPassword={(managedUser) => void handleResetUserPassword(managedUser)} />}
+      {route === 'users' && user.role === 'admin' && <UserManagementPage users={managedUsers} loading={usersLoading} currentUserId={user.id} onRefresh={loadUsers} onCreate={handleCreateUser} onUpdate={handleUpdateUser} onToggleActive={(managedUser) => void handleToggleUserActive(managedUser)} onResetPassword={(managedUser) => void handleResetUserPassword(managedUser)} />}
     </StaffShell>
   );
 }

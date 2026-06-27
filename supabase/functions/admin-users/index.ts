@@ -25,6 +25,7 @@ type RequestBody =
       role: StaffRole;
       isActive: boolean;
     }
+  | { action: 'set_active'; userId: string; isActive: boolean }
   | { action: 'reset_password'; userId: string; password: string };
 
 function json(body: unknown, status = 200) {
@@ -91,6 +92,17 @@ Deno.serve(async (request) => {
 
     const body = (await request.json()) as RequestBody;
 
+    const callerId = callerResult.data.id;
+
+    async function auditLog(action: string, detail: Record<string, unknown>) {
+      await adminClient.from('audit_logs').insert({
+        action,
+        actor_id: callerId,
+        actor_type: 'staff',
+        detail,
+      });
+    }
+
     if (body.action === 'list') {
       const result = await adminClient
         .from('profiles')
@@ -137,6 +149,7 @@ Deno.serve(async (request) => {
         await adminClient.auth.admin.deleteUser(authCreate.data.user.id);
         throw profileResult.error;
       }
+      await auditLog('admin_create_user', { targetUserId: authCreate.data.user.id, username, displayName, role: body.role });
       return json({ user: profileResult.data }, 201);
     }
 
@@ -147,7 +160,7 @@ Deno.serve(async (request) => {
 
       const targetResult = await adminClient
         .from('profiles')
-        .select('id, role, is_active')
+        .select('id, username, role, is_active')
         .eq('id', body.userId)
         .single();
       if (targetResult.error) throw targetResult.error;
@@ -156,7 +169,7 @@ Deno.serve(async (request) => {
         targetResult.data.role === 'admin' &&
         targetResult.data.is_active &&
         (body.role !== 'admin' || !body.isActive);
-      if (body.userId === callerResult.data.id && removesActiveAdmin) {
+      if (body.userId === callerId && removesActiveAdmin) {
         return json({ error: 'ไม่สามารถลดสิทธิ์หรือปิดบัญชีของตนเองได้' }, 409);
       }
       if (removesActiveAdmin) {
@@ -182,15 +195,72 @@ Deno.serve(async (request) => {
         .select('id, username, display_name, role, is_active, created_at, updated_at')
         .single();
       if (updateResult.error) throw updateResult.error;
+      await auditLog('admin_update_user', {
+        targetUserId: body.userId,
+        username: targetResult.data.username,
+        displayName,
+        role: body.role,
+        isActive: body.isActive,
+        prevRole: targetResult.data.role,
+        prevIsActive: targetResult.data.is_active,
+      });
+      return json({ user: updateResult.data });
+    }
+
+    if (body.action === 'set_active') {
+      const targetResult = await adminClient
+        .from('profiles')
+        .select('id, username, role, is_active')
+        .eq('id', body.userId)
+        .single();
+      if (targetResult.error) throw targetResult.error;
+
+      if (!body.isActive) {
+        if (body.userId === callerId) {
+          return json({ error: 'ไม่สามารถปิดบัญชีของตนเองได้' }, 409);
+        }
+        if (targetResult.data.role === 'admin' && targetResult.data.is_active) {
+          const countResult = await adminClient
+            .from('profiles')
+            .select('id', { count: 'exact', head: true })
+            .eq('role', 'admin')
+            .eq('is_active', true);
+          if (countResult.error) throw countResult.error;
+          if ((countResult.count || 0) <= 1) {
+            return json({ error: 'ไม่สามารถปิด admin คนสุดท้ายได้' }, 409);
+          }
+        }
+      }
+
+      const updateResult = await adminClient
+        .from('profiles')
+        .update({ is_active: body.isActive })
+        .eq('id', body.userId)
+        .select('id, username, display_name, role, is_active, created_at, updated_at')
+        .single();
+      if (updateResult.error) throw updateResult.error;
+      await auditLog(body.isActive ? 'admin_activate_user' : 'admin_deactivate_user', {
+        targetUserId: body.userId,
+        username: targetResult.data.username,
+      });
       return json({ user: updateResult.data });
     }
 
     if (body.action === 'reset_password') {
+      const targetResult = await adminClient
+        .from('profiles')
+        .select('username')
+        .eq('id', body.userId)
+        .single();
       validatePassword(body.password);
       const result = await adminClient.auth.admin.updateUserById(body.userId, {
         password: `RxReady#${body.password}`,
       });
       if (result.error) throw result.error;
+      await auditLog('admin_reset_password', {
+        targetUserId: body.userId,
+        username: targetResult.data?.username ?? null,
+      });
       return json({ success: true });
     }
 

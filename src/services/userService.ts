@@ -62,6 +62,15 @@ export async function updateManagedUser(
   return toManagedUser(data.user);
 }
 
+export async function setManagedUserActive(
+  userId: string,
+  isActive: boolean,
+): Promise<ManagedUser> {
+  const data = await invokeAdminUsers({ action: 'set_active', userId, isActive });
+  if (!data.user) throw new Error('ไม่พบข้อมูลผู้ใช้');
+  return toManagedUser(data.user);
+}
+
 export async function resetManagedUserPassword(
   userId: string,
   password: string,
