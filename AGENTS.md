@@ -236,6 +236,22 @@ audit_logs (
 
 สร้าง backend operations ต่อไปนี้ด้วย RPC หรือ Edge Functions ตามความเหมาะสม
 
+### admin-users Edge Function
+
+ใช้สำหรับหน้าจัดการผู้ใช้ และเรียกได้เฉพาะ profile ที่ `role = 'admin'` และ `is_active = true`
+
+ต้องรองรับ:
+
+- list profiles
+- create Auth user ด้วย internal email, auto confirm และสร้าง profile
+- update `display_name`, `role`, `is_active`
+- reset password/PIN
+- ห้ามแก้ username หลังสร้าง เพราะผูกกับ internal Auth identity
+- ห้าม admin ลดสิทธิ์หรือปิดบัญชีตนเอง
+- ห้ามลดสิทธิ์หรือปิด admin คนสุดท้าย
+- ต้องตรวจ JWT และ role ฝั่ง Edge Function ทุก request ห้ามเชื่อถือ guard ฝั่ง frontend อย่างเดียว
+- ใช้ `SUPABASE_SERVICE_ROLE_KEY` เฉพาะใน Edge Function environment ห้ามส่งกลับหรือ bundle ไป frontend
+
 ### create_backorder_ticket
 
 ใช้สร้างใบค้างยาใหม่
@@ -394,6 +410,7 @@ supabase/migrations/001_init.sql
 - Print QR page → ใช้ public_token สร้าง QR URL
 - Public status page `/status/:token` → get_public_status_by_token
 - Lookup page → lookup_ticket_status
+- User management page → admin-users Edge Function และแสดงเฉพาะ role admin
 
 ---
 

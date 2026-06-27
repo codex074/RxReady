@@ -4,6 +4,7 @@ export type AppRoute =
   | 'create'
   | 'list'
   | 'detail'
+  | 'users'
   | 'print'
   | 'lookup'
   | 'public';

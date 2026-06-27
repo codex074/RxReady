@@ -21,6 +21,7 @@ const pageTitles: Partial<Record<AppRoute, string>> = {
   create: 'สร้างใบค้างยา',
   list: 'รายการใบค้างยา',
   detail: 'รายละเอียดใบค้างยา',
+  users: 'จัดการผู้ใช้',
 };
 
 const roleLabels: Record<string, string> = {
@@ -68,6 +69,7 @@ export function StaffShell({
           <NavButton active={route === 'dashboard'} icon="dashboard" label="หน้าหลัก" onClick={() => onNavigate('dashboard')} />
           <NavButton active={route === 'create'} icon="plus-circle" label="สร้างใบค้างยา" onClick={() => onNavigate('create')} />
           <NavButton active={route === 'list'} icon="list" label="รายการใบค้างยา" onClick={() => onNavigate('list')} />
+          {user.role === 'admin' && <NavButton active={route === 'users'} icon="users" label="จัดการผู้ใช้" onClick={() => onNavigate('users')} />}
           <div className="px-[12px] pb-[8px] pt-[18px] text-[11px] font-bold tracking-[.08em] text-[#b6c2d2]">สำหรับผู้ป่วย</div>
           <NavButton active={false} icon="search" label="ค้นหาสถานะยา" onClick={() => onNavigate('lookup')} />
         </nav>
@@ -116,7 +118,7 @@ export function StaffShell({
 
 type NavButtonProps = {
   active: boolean;
-  icon: 'dashboard' | 'plus-circle' | 'list' | 'search';
+  icon: 'dashboard' | 'plus-circle' | 'list' | 'search' | 'users';
   label: string;
   onClick: () => void;
 };

@@ -1,0 +1,202 @@
+import { createClient } from 'npm:@supabase/supabase-js@2';
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+};
+
+const roles = ['admin', 'pharmacist', 'staff', 'viewer'] as const;
+type StaffRole = (typeof roles)[number];
+
+type RequestBody =
+  | { action: 'list' }
+  | {
+      action: 'create';
+      username: string;
+      displayName: string;
+      password: string;
+      role: StaffRole;
+    }
+  | {
+      action: 'update';
+      userId: string;
+      displayName: string;
+      role: StaffRole;
+      isActive: boolean;
+    }
+  | { action: 'reset_password'; userId: string; password: string };
+
+function json(body: unknown, status = 200) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+  });
+}
+
+function normalizeUsername(value: string) {
+  const username = value.trim().toLowerCase();
+  if (!/^[a-z0-9._-]{3,32}$/.test(username)) {
+    throw new Error('ชื่อผู้ใช้ต้องมี 3-32 ตัว และใช้เฉพาะ a-z, 0-9, จุด, ขีดกลาง หรือขีดล่าง');
+  }
+  return username;
+}
+
+function validatePassword(value: string) {
+  if (value.length < 4 || value.length > 64) {
+    throw new Error('รหัสผ่านต้องมี 4-64 ตัว');
+  }
+}
+
+function validateRole(value: string): asserts value is StaffRole {
+  if (!roles.includes(value as StaffRole)) {
+    throw new Error('สิทธิ์ผู้ใช้ไม่ถูกต้อง');
+  }
+}
+
+Deno.serve(async (request) => {
+  if (request.method === 'OPTIONS') {
+    return new Response('ok', { headers: corsHeaders });
+  }
+  if (request.method !== 'POST') {
+    return json({ error: 'Method not allowed' }, 405);
+  }
+
+  try {
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    const authorization = request.headers.get('Authorization');
+    if (!supabaseUrl || !serviceRoleKey) throw new Error('Edge Function configuration is incomplete');
+    if (!authorization?.startsWith('Bearer ')) return json({ error: 'Unauthorized' }, 401);
+
+    const adminClient = createClient(supabaseUrl, serviceRoleKey, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+    const token = authorization.slice('Bearer '.length);
+    const authResult = await adminClient.auth.getUser(token);
+    if (authResult.error || !authResult.data.user) return json({ error: 'Unauthorized' }, 401);
+
+    const callerResult = await adminClient
+      .from('profiles')
+      .select('id, role, is_active')
+      .eq('id', authResult.data.user.id)
+      .single();
+    if (
+      callerResult.error ||
+      callerResult.data?.role !== 'admin' ||
+      callerResult.data?.is_active !== true
+    ) {
+      return json({ error: 'ไม่มีสิทธิ์จัดการผู้ใช้' }, 403);
+    }
+
+    const body = (await request.json()) as RequestBody;
+
+    if (body.action === 'list') {
+      const result = await adminClient
+        .from('profiles')
+        .select('id, username, display_name, role, is_active, created_at, updated_at')
+        .order('created_at', { ascending: true });
+      if (result.error) throw result.error;
+      return json({ users: result.data });
+    }
+
+    if (body.action === 'create') {
+      const username = normalizeUsername(body.username);
+      const displayName = body.displayName.trim();
+      if (!displayName) throw new Error('กรุณากรอกชื่อที่แสดง');
+      validatePassword(body.password);
+      validateRole(body.role);
+
+      const existing = await adminClient
+        .from('profiles')
+        .select('id')
+        .ilike('username', username)
+        .maybeSingle();
+      if (existing.error) throw existing.error;
+      if (existing.data) return json({ error: 'ชื่อผู้ใช้นี้มีอยู่แล้ว' }, 409);
+
+      const authCreate = await adminClient.auth.admin.createUser({
+        email: `${username}@usc-rxready.vercel.app`,
+        password: `RxReady#${body.password}`,
+        email_confirm: true,
+        user_metadata: { username, display_name: displayName },
+      });
+      if (authCreate.error || !authCreate.data.user) {
+        throw authCreate.error || new Error('สร้างบัญชีไม่สำเร็จ');
+      }
+
+      const profileResult = await adminClient.from('profiles').upsert({
+        id: authCreate.data.user.id,
+        username,
+        display_name: displayName,
+        role: body.role,
+        is_active: true,
+      }).select('id, username, display_name, role, is_active, created_at, updated_at').single();
+
+      if (profileResult.error) {
+        await adminClient.auth.admin.deleteUser(authCreate.data.user.id);
+        throw profileResult.error;
+      }
+      return json({ user: profileResult.data }, 201);
+    }
+
+    if (body.action === 'update') {
+      const displayName = body.displayName.trim();
+      if (!displayName) throw new Error('กรุณากรอกชื่อที่แสดง');
+      validateRole(body.role);
+
+      const targetResult = await adminClient
+        .from('profiles')
+        .select('id, role, is_active')
+        .eq('id', body.userId)
+        .single();
+      if (targetResult.error) throw targetResult.error;
+
+      const removesActiveAdmin =
+        targetResult.data.role === 'admin' &&
+        targetResult.data.is_active &&
+        (body.role !== 'admin' || !body.isActive);
+      if (body.userId === callerResult.data.id && removesActiveAdmin) {
+        return json({ error: 'ไม่สามารถลดสิทธิ์หรือปิดบัญชีของตนเองได้' }, 409);
+      }
+      if (removesActiveAdmin) {
+        const countResult = await adminClient
+          .from('profiles')
+          .select('id', { count: 'exact', head: true })
+          .eq('role', 'admin')
+          .eq('is_active', true);
+        if (countResult.error) throw countResult.error;
+        if ((countResult.count || 0) <= 1) {
+          return json({ error: 'ไม่สามารถลดสิทธิ์หรือปิด admin คนสุดท้ายได้' }, 409);
+        }
+      }
+
+      const updateResult = await adminClient
+        .from('profiles')
+        .update({
+          display_name: displayName,
+          role: body.role,
+          is_active: body.isActive,
+        })
+        .eq('id', body.userId)
+        .select('id, username, display_name, role, is_active, created_at, updated_at')
+        .single();
+      if (updateResult.error) throw updateResult.error;
+      return json({ user: updateResult.data });
+    }
+
+    if (body.action === 'reset_password') {
+      validatePassword(body.password);
+      const result = await adminClient.auth.admin.updateUserById(body.userId, {
+        password: `RxReady#${body.password}`,
+      });
+      if (result.error) throw result.error;
+      return json({ success: true });
+    }
+
+    return json({ error: 'Unknown action' }, 400);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'เกิดข้อผิดพลาด';
+    return json({ error: message }, 400);
+  }
+});

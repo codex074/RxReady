@@ -11,6 +11,7 @@ import { TicketDetailPage } from './pages/TicketDetailPage';
 import { LookupPage } from './pages/LookupPage';
 import { PublicStatusPage } from './pages/PublicStatusPage';
 import { PrintPage } from './pages/PrintPage';
+import { UserManagementPage } from './pages/UserManagementPage';
 import { getCurrentUser, signIn, signOut } from './services/authService';
 import {
   createTicket,
@@ -19,6 +20,12 @@ import {
   lookupTicketStatus,
   updateStatus,
 } from './services/ticketService';
+import {
+  createManagedUser,
+  listManagedUsers,
+  resetManagedUserPassword,
+  updateManagedUser,
+} from './services/userService';
 import type {
   StaffUser,
   Ticket,
@@ -26,6 +33,11 @@ import type {
   TicketStatus,
 } from './types/backorder';
 import type { AppRoute } from './types/navigation';
+import type {
+  CreateManagedUserInput,
+  ManagedUser,
+  UpdateManagedUserInput,
+} from './types/user';
 import { publicStatusUrl, qrDataUrl, tokenFromLocation } from './utils/qr';
 
 const demoUser: StaffUser = {
@@ -78,6 +90,8 @@ export function App() {
   const [publicStatus, setPublicStatus] = useState<Ticket | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [loading, setLoading] = useState(isSupabaseConfigured);
+  const [usersLoading, setUsersLoading] = useState(false);
+  const [managedUsers, setManagedUsers] = useState<ManagedUser[]>([]);
   const [loginUsername, setLoginUsername] = useState(isSupabaseConfigured ? '' : 'admin');
   const [loginPassword, setLoginPassword] = useState(isSupabaseConfigured ? '' : 'demo1234');
   const [query, setQuery] = useState('');
@@ -161,6 +175,13 @@ export function App() {
   }, [route, activeTicket?.token]);
 
   function navigate(nextRoute: AppRoute, ticketId?: string) {
+    if (nextRoute === 'users') {
+      if (user.role !== 'admin') {
+        void showError('ไม่มีสิทธิ์เข้าถึง', 'เฉพาะผู้ดูแลระบบเท่านั้น');
+        return;
+      }
+      void loadUsers();
+    }
     if (ticketId) setActiveId(ticketId);
     setSidebarOpen(false);
     setRoute(nextRoute);
@@ -176,6 +197,85 @@ export function App() {
     const data = await listTickets();
     setTickets(data);
     return data;
+  }
+
+  async function loadUsers(): Promise<void> {
+    if (!isSupabaseConfigured || user.role !== 'admin') return;
+    try {
+      setUsersLoading(true);
+      setManagedUsers(await listManagedUsers());
+    } catch (error) {
+      await showError('โหลดข้อมูลผู้ใช้ไม่สำเร็จ', error);
+    } finally {
+      setUsersLoading(false);
+    }
+  }
+
+  async function handleCreateUser(input: CreateManagedUserInput): Promise<boolean> {
+    try {
+      setUsersLoading(true);
+      const created = await createManagedUser(input);
+      setManagedUsers((current) => [...current, created]);
+      showToast('สร้างผู้ใช้สำเร็จ');
+      return true;
+    } catch (error) {
+      await showError('สร้างผู้ใช้ไม่สำเร็จ', error);
+      return false;
+    } finally {
+      setUsersLoading(false);
+    }
+  }
+
+  async function handleUpdateUser(input: UpdateManagedUserInput): Promise<boolean> {
+    try {
+      setUsersLoading(true);
+      const updated = await updateManagedUser(input);
+      setManagedUsers((current) =>
+        current.map((managedUser) => managedUser.id === updated.id ? updated : managedUser),
+      );
+      if (updated.id === user.id) {
+        setUser((current) => ({
+          ...current,
+          name: updated.displayName,
+          role: updated.role,
+        }));
+      }
+      showToast('บันทึกข้อมูลผู้ใช้สำเร็จ');
+      return true;
+    } catch (error) {
+      await showError('แก้ไขผู้ใช้ไม่สำเร็จ', error);
+      return false;
+    } finally {
+      setUsersLoading(false);
+    }
+  }
+
+  async function handleResetUserPassword(managedUser: ManagedUser) {
+    const result = await Swal.fire({
+      icon: 'question',
+      title: `ตั้งรหัสผ่านใหม่สำหรับ @${managedUser.username}`,
+      input: 'password',
+      inputPlaceholder: 'รหัสผ่าน/PIN ใหม่',
+      inputAttributes: { autocomplete: 'new-password', minlength: '4' },
+      inputValidator: (value: string) => value.length < 4 ? 'รหัสผ่านต้องมีอย่างน้อย 4 ตัว' : undefined,
+      showCancelButton: true,
+      confirmButtonColor: '#2563eb',
+      cancelButtonColor: '#94a3b8',
+      confirmButtonText: 'บันทึกรหัสใหม่',
+      cancelButtonText: 'ยกเลิก',
+      reverseButtons: true,
+    });
+    if (!result.isConfirmed || !result.value) return;
+
+    try {
+      setUsersLoading(true);
+      await resetManagedUserPassword(managedUser.id, result.value);
+      showToast('ตั้งรหัสผ่านใหม่สำเร็จ');
+    } catch (error) {
+      await showError('ตั้งรหัสผ่านไม่สำเร็จ', error);
+    } finally {
+      setUsersLoading(false);
+    }
   }
 
   async function handleLogin(event: React.FormEvent<HTMLFormElement>) {
@@ -529,6 +629,7 @@ export function App() {
       {route === 'create' && <CreateTicketPage form={form} loading={loading} onFieldChange={(field, value) => setForm((current) => ({ ...current, [field]: value }))} onItemChange={(itemId, field, value) => setForm((current) => ({ ...current, items: current.items.map((item) => item.id === itemId ? { ...item, [field]: value } : item) }))} onAddItem={() => setForm((current) => ({ ...current, items: [...current.items, newFormItem()] }))} onRemoveItem={(id) => void handleRemoveItem(id)} onCancel={() => void handleCancelCreate()} onSave={() => void handleCreateTicket()} />}
       {route === 'list' && <TicketListPage tickets={tickets} query={query} statusFilter={statusFilter} onQueryChange={setQuery} onStatusChange={setStatusFilter} onCreate={() => navigate('create')} onView={(id) => navigate('detail', id)} onPrint={(id) => navigate('print', id)} />}
       {route === 'detail' && activeTicket && <TicketDetailPage ticket={activeTicket} loading={loading} onBack={() => navigate('list')} onPrint={() => navigate('print', activeTicket.id)} onStatusChange={(status) => void handleStatusChange(status)} />}
+      {route === 'users' && user.role === 'admin' && <UserManagementPage users={managedUsers} loading={usersLoading} currentUserId={user.id} onRefresh={loadUsers} onCreate={handleCreateUser} onUpdate={handleUpdateUser} onResetPassword={(managedUser) => void handleResetUserPassword(managedUser)} />}
     </StaffShell>
   );
 }

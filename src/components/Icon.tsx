@@ -4,6 +4,7 @@ type IconName =
   | 'list'
   | 'search'
   | 'user'
+  | 'users'
   | 'logout'
   | 'menu'
   | 'plus'
@@ -48,6 +49,9 @@ export function Icon({ name, size = 19, strokeWidth = 2, className }: IconProps)
   }
   if (name === 'user') {
     return <svg {...common}><circle cx="12" cy="9" r="3.2" /><path d="M5.5 19.5a6.6 6.6 0 0 1 13 0" /></svg>;
+  }
+  if (name === 'users') {
+    return <svg {...common}><circle cx="9" cy="8" r="3" /><path d="M3.5 19a5.5 5.5 0 0 1 11 0" /><path d="M16 5.5a3 3 0 0 1 0 5.5" /><path d="M17 14a5 5 0 0 1 4 5" /></svg>;
   }
   if (name === 'logout') {
     return <svg {...common}><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" /></svg>;
