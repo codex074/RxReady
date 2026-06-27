@@ -1,0 +1,737 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script>
+window.MEDBACKORDER_ENV = {
+  supabaseUrl: "%VITE_SUPABASE_URL%",
+  supabaseAnonKey: "%VITE_SUPABASE_ANON_KEY%",
+  appBaseUrl: "%VITE_APP_BASE_URL%"
+};
+</script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script type="module" src="./src/utils/status.js"></script>
+<script type="module" src="./src/utils/qr.js"></script>
+<script type="module" src="./src/lib/supabase.js"></script>
+<script type="module" src="./src/services/authService.js"></script>
+<script type="module" src="./src/services/ticketService.js"></script>
+<script type="module" src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
+<style>
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; }
+  body{ font-family:'Noto Sans Thai',system-ui,-apple-system,sans-serif; }
+  input,button,select,textarea{ font-family:inherit; }
+  ::placeholder{ color:#94a3b8; }
+  @keyframes spin{ to{ transform:rotate(360deg);} }
+  @keyframes fadeUp{ from{opacity:0; transform:translateY(10px);} to{opacity:1; transform:none;} }
+  .swal2-popup{ font-family:'Noto Sans Thai',system-ui,sans-serif !important; border-radius:20px !important; }
+  .swal2-title{ font-size:1.2rem !important; color:#0f172a !important; }
+  .swal2-html-container{ white-space:pre-line !important; color:#475569 !important; }
+  .swal2-styled{ box-shadow:none !important; border-radius:12px !important; font-weight:600 !important; }
+  @media print {
+    body{ background:#fff !important; }
+    .no-print{ display:none !important; }
+    .print-paper{ box-shadow:none !important; border:none !important; margin:0 !important; }
+    .print-wrap{ background:#fff !important; padding:0 !important; min-height:auto !important; }
+    @page{ size:A5; margin:12mm; }
+  }
+</style>
+</helmet>
+<div style="min-height:100vh; background:#eef4fb; color:#0f172a; font-family:'Noto Sans Thai',system-ui,sans-serif; -webkit-font-smoothing:antialiased;">
+
+  <sc-if value="{{ showLogin }}" hint-placeholder-val="{{ true }}">
+    <div style="min-height:100vh; display:flex; flex-wrap:wrap;">
+
+      <sc-if value="{{ showBrandPanel }}" hint-placeholder-val="{{ true }}">
+        <div style="position:relative; overflow:hidden; flex:1 1 380px; background:linear-gradient(160deg,#1e63c7,#1746a0); color:#fff; padding:56px 48px; display:flex; flex-direction:column; justify-content:space-between;">
+          <div style="position:absolute; width:420px; height:420px; border-radius:50%; border:60px solid rgba(255,255,255,.06); right:-160px; top:-150px;"></div>
+          <div style="position:absolute; width:240px; height:240px; border-radius:50%; background:rgba(255,255,255,.05); left:-90px; bottom:40px;"></div>
+          <div style="position:relative;">
+            <div style="display:inline-flex; background:#fff; border-radius:16px; padding:14px 20px; box-shadow:0 10px 30px rgba(0,0,0,.18);">
+              <img src="assets/usc-logo.png" alt="USC+" style="height:52px; display:block;">
+            </div>
+          </div>
+          <div style="position:relative; max-width:420px;">
+            <div style="font-size:13px; letter-spacing:.18em; font-weight:600; color:#bcd4f7; margin-bottom:14px;">USC PHARMACY · ระบบใบค้างยา</div>
+            <h1 style="font-size:34px; line-height:1.25; font-weight:700; margin:0 0 16px;">ออกใบค้างยา ติดตามสถานะ<br>ตรวจสอบได้ด้วย QR Code</h1>
+            <p style="font-size:15px; line-height:1.7; color:#dbe7fb; margin:0 0 24px;">ระบบบริหารจัดการใบค้างยาสำหรับห้องยา ศูนย์การแพทย์เฉพาะทางและตรวจสุขภาพ อุตรดิตถ์ (USC+) ช่วยให้เจ้าหน้าที่ออกใบค้างยาได้รวดเร็ว และผู้ป่วยตรวจสอบสถานะยาได้เองทุกที่</p>
+            <div style="display:flex; flex-direction:column; gap:12px;">
+              <div style="display:flex; align-items:center; gap:12px; font-size:14.5px; color:#eaf2fe;"><span style="display:inline-flex; align-items:center; justify-content:center; width:26px; height:26px; border-radius:50%; background:rgba(255,255,255,.18);">✓</span> ออกใบค้างยาพร้อมเลขที่และ QR อัตโนมัติ</div>
+              <div style="display:flex; align-items:center; gap:12px; font-size:14.5px; color:#eaf2fe;"><span style="display:inline-flex; align-items:center; justify-content:center; width:26px; height:26px; border-radius:50%; background:rgba(255,255,255,.18);">✓</span> อัปเดตสถานะ กำลังเตรียมยา · พร้อมรับ · รับยาแล้ว</div>
+              <div style="display:flex; align-items:center; gap:12px; font-size:14.5px; color:#eaf2fe;"><span style="display:inline-flex; align-items:center; justify-content:center; width:26px; height:26px; border-radius:50%; background:rgba(255,255,255,.18);">✓</span> ผู้ป่วยสแกน QR เพื่อตรวจสอบสถานะได้เอง</div>
+            </div>
+          </div>
+          <div style="position:relative; display:flex; align-items:center; gap:14px; padding-top:8px;">
+            <div style="display:flex; align-items:center; justify-content:center; width:46px; height:46px; background:#fff; border-radius:12px;"><img src="assets/utth-logo.png" alt="รพ.อุตรดิตถ์" style="height:36px;"></div>
+            <div style="display:flex; align-items:center; justify-content:center; width:46px; height:46px; background:#fff; border-radius:12px;"><img src="assets/moph-logo.png" alt="สธ." style="height:36px;"></div>
+            <div style="font-size:12.5px; line-height:1.5; color:#cfe0f8;">โรงพยาบาลอุตรดิตถ์<br>กระทรวงสาธารณสุข</div>
+          </div>
+        </div>
+      </sc-if>
+
+      <div style="flex:1 1 440px; display:flex; align-items:center; justify-content:center; padding:40px 24px;">
+        <div style="width:100%; max-width:400px; animation:fadeUp .4s ease both;">
+          <div style="text-align:center; margin-bottom:28px;">
+            <img src="assets/usc-logo.png" alt="USC+" style="height:50px; margin-bottom:18px;">
+            <h2 style="font-size:24px; font-weight:700; margin:0 0 6px; color:#0f172a;">ระบบใบค้างยาออนไลน์</h2>
+            <p style="font-size:14px; color:#64748b; margin:0;">เข้าสู่ระบบสำหรับเจ้าหน้าที่ห้องยา</p>
+          </div>
+          <form onSubmit="{{ onLogin }}" style="background:#fff; border:1px solid #e2e8f0; border-radius:20px; padding:28px; box-shadow:0 18px 40px -24px rgba(15,42,90,.45);">
+            <label style="display:block; font-size:13.5px; font-weight:600; color:#334155; margin-bottom:7px;">อีเมล</label>
+            <div style="position:relative; margin-bottom:18px;">
+              <span style="position:absolute; left:14px; top:50%; transform:translateY(-50%); color:#94a3b8; font-size:15px;">✉</span>
+              <input type="email" value="{{ loginEmail }}" onChange="{{ onLoginEmail }}" placeholder="name@usc.go.th" style="width:100%; padding:13px 14px 13px 40px; border:1px solid #cbd5e1; border-radius:12px; font-size:14.5px; color:#0f172a; outline:none; transition:.15s;" style-focus="border-color:#2563eb; box-shadow:0 0 0 3px rgba(37,99,235,.16);">
+            </div>
+            <label style="display:block; font-size:13.5px; font-weight:600; color:#334155; margin-bottom:7px;">รหัสผ่าน</label>
+            <div style="position:relative; margin-bottom:24px;">
+              <span style="position:absolute; left:14px; top:50%; transform:translateY(-50%); color:#94a3b8; font-size:15px;">🔒</span>
+              <input type="password" value="{{ loginPass }}" onChange="{{ onLoginPass }}" placeholder="••••••••" style="width:100%; padding:13px 14px 13px 40px; border:1px solid #cbd5e1; border-radius:12px; font-size:14.5px; color:#0f172a; outline:none; transition:.15s;" style-focus="border-color:#2563eb; box-shadow:0 0 0 3px rgba(37,99,235,.16);">
+            </div>
+            <button type="submit" style="width:100%; padding:14px; background:#2563eb; color:#fff; border:none; border-radius:12px; font-size:15px; font-weight:700; cursor:pointer; transition:.15s;" style-hover="background:#1d4ed8;">เข้าสู่ระบบ</button>
+          </form>
+          <div style="display:flex; align-items:center; gap:12px; margin:22px 0;">
+            <div style="flex:1; height:1px; background:#dbe3ee;"></div>
+            <span style="font-size:12.5px; color:#94a3b8;">สำหรับผู้ป่วย</span>
+            <div style="flex:1; height:1px; background:#dbe3ee;"></div>
+          </div>
+          <button onClick="{{ goLookup }}" style="width:100%; padding:13px; background:#fff; color:#1d4ed8; border:1px solid #bfdbfe; border-radius:12px; font-size:14.5px; font-weight:600; cursor:pointer; transition:.15s; display:flex; align-items:center; justify-content:center; gap:8px;" style-hover="background:#eff6ff; border-color:#93c5fd;">ตรวจสอบสถานะยาด้วยเลขใบค้างยา</button>
+          <p style="text-align:center; font-size:12px; color:#94a3b8; margin-top:24px;">© USC+ Uttaradit Specialty and Check-up Center</p>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ isShell }}" hint-placeholder-val="{{ true }}">
+    <div style="display:flex; min-height:100vh; align-items:stretch;">
+      <sc-if value="{{ overlayShow }}"><div onClick="{{ closeSidebar }}" style="position:fixed; inset:0; background:rgba(15,23,42,.45); z-index:45;"></div></sc-if>
+
+      <aside style="{{ sidebarStyle }}">
+        <div style="padding:18px 18px 16px; border-bottom:1px solid #eef2f7; display:flex; align-items:center; gap:11px;">
+          <img src="assets/usc-logo.png" alt="USC+" style="height:30px;">
+          <div style="line-height:1.2;"><div style="font-size:14.5px; font-weight:700; color:#0f172a;">ระบบใบค้างยา</div><div style="font-size:11.5px; color:#94a3b8;">USC+ · ห้องยา</div></div>
+        </div>
+        <nav style="flex:1; padding:16px 12px; display:flex; flex-direction:column; gap:3px; overflow-y:auto;">
+          <div style="font-size:11px; font-weight:700; letter-spacing:.08em; color:#b6c2d2; padding:4px 12px 8px;">เมนูหลัก</div>
+          <button onClick="{{ goDash }}" style="display:flex; align-items:center; gap:12px; width:100%; padding:11px 12px; border:none; border-radius:12px; cursor:pointer; font-size:14.5px; font-weight:600; text-align:left; background:{{ navDashBg }}; color:{{ navDashCol }};">
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>หน้าหลัก
+          </button>
+          <button onClick="{{ goCreate }}" style="display:flex; align-items:center; gap:12px; width:100%; padding:11px 12px; border:none; border-radius:12px; cursor:pointer; font-size:14.5px; font-weight:600; text-align:left; background:{{ navCreateBg }}; color:{{ navCreateCol }};">
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>สร้างใบค้างยา
+          </button>
+          <button onClick="{{ goListAll }}" style="display:flex; align-items:center; gap:12px; width:100%; padding:11px 12px; border:none; border-radius:12px; cursor:pointer; font-size:14.5px; font-weight:600; text-align:left; background:{{ navListBg }}; color:{{ navListCol }};">
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="8" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="20" y2="12"/><line x1="8" y1="18" x2="20" y2="18"/><circle cx="4" cy="6" r="1.2"/><circle cx="4" cy="12" r="1.2"/><circle cx="4" cy="18" r="1.2"/></svg>รายการใบค้างยา
+          </button>
+          <div style="font-size:11px; font-weight:700; letter-spacing:.08em; color:#b6c2d2; padding:18px 12px 8px;">สำหรับผู้ป่วย</div>
+          <button onClick="{{ goLookup }}" style="display:flex; align-items:center; gap:12px; width:100%; padding:11px 12px; border:none; border-radius:12px; cursor:pointer; font-size:14.5px; font-weight:600; text-align:left; background:transparent; color:#475569;">
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="7"/><line x1="16.5" y1="16.5" x2="21" y2="21"/></svg>ค้นหาสถานะยา
+          </button>
+        </nav>
+        <div style="padding:14px; border-top:1px solid #eef2f7;">
+          <div style="display:flex; align-items:center; gap:11px; padding:8px 6px 12px;">
+            <span style="display:inline-flex; align-items:center; justify-content:center; width:38px; height:38px; border-radius:50%; background:#e0ecfd; color:#1d4ed8;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="9" r="3.2"/><path d="M5.5 19.5a6.6 6.6 0 0 1 13 0"/></svg></span>
+            <div style="line-height:1.25; min-width:0;"><div style="font-size:13.5px; font-weight:700; color:#0f172a; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ user.name }}</div><div style="font-size:11.5px; color:#94a3b8;">{{ user.role }}</div></div>
+          </div>
+          <button onClick="{{ onLogout }}" style="display:flex; align-items:center; justify-content:center; gap:9px; width:100%; padding:10px; border:1px solid #e7eef7; border-radius:11px; cursor:pointer; font-size:13.5px; font-weight:600; background:#fff; color:#be123c;" style-hover="background:#fff1f2; border-color:#fecdd3;">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>ออกจากระบบ
+          </button>
+        </div>
+      </aside>
+
+      <div style="flex:1; display:flex; flex-direction:column; min-width:0;">
+        <header style="position:sticky; top:0; z-index:40; background:#ffffffe6; backdrop-filter:blur(8px); border-bottom:1px solid #e7eef7; display:flex; align-items:center; justify-content:space-between; gap:12px; padding:0 clamp(14px,2.5vw,26px); height:62px;">
+          <div style="display:flex; align-items:center; gap:12px; min-width:0;">
+            <sc-if value="{{ showHamburger }}"><button onClick="{{ toggleSidebar }}" style="display:inline-flex; align-items:center; justify-content:center; width:40px; height:40px; border:1px solid #e7eef7; border-radius:11px; background:#fff; cursor:pointer; color:#334155;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/></svg></button></sc-if>
+            <div style="font-size:14.5px; font-weight:700; color:#1e3a5f; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ pageTitle }}</div>
+          </div>
+          <div style="display:flex; align-items:center; gap:14px;">
+            <sc-if value="{{ desktopTable }}"><span style="font-size:12.5px; color:#94a3b8;">{{ todayStr }}</span></sc-if>
+            <div style="display:flex; align-items:center; gap:9px; padding:5px 6px 5px 12px; border:1px solid #e7eef7; border-radius:999px;">
+              <span style="font-size:13px; font-weight:600; color:#334155;">{{ user.name }}</span>
+              <span style="display:inline-flex; align-items:center; justify-content:center; width:30px; height:30px; border-radius:50%; background:#1d4ed8; color:#fff;"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="9" r="3.2"/><path d="M5.5 19.5a6.6 6.6 0 0 1 13 0"/></svg></span>
+            </div>
+          </div>
+        </header>
+
+        <main style="flex:1; padding:clamp(16px,3vw,30px); max-width:1180px; width:100%; margin:0 auto;">
+
+          <sc-if value="{{ showDashboard }}" hint-placeholder-val="{{ true }}">
+            <div style="animation:fadeUp .35s ease both;">
+              <div style="display:flex; flex-wrap:wrap; align-items:flex-end; justify-content:space-between; gap:14px; margin-bottom:22px;">
+                <div><h1 style="font-size:clamp(20px,3vw,26px); font-weight:700; margin:0 0 4px; color:#0f172a;">ภาพรวมระบบ</h1><p style="font-size:13.5px; color:#64748b; margin:0;">{{ todayStr }}</p></div>
+                <button onClick="{{ goCreate }}" style="display:inline-flex; align-items:center; gap:8px; padding:11px 18px; background:#2563eb; color:#fff; border:none; border-radius:12px; font-size:14px; font-weight:700; cursor:pointer;" style-hover="background:#1d4ed8;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><line x1="12" y1="6" x2="12" y2="18"/><line x1="6" y1="12" x2="18" y2="12"/></svg>สร้างใบค้างยา</button>
+              </div>
+
+              <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(165px,1fr)); gap:13px; margin-bottom:26px;">
+                <sc-for list="{{ statCards }}" as="c" hint-placeholder-count="5">
+                  <button onClick="{{ c.onClick }}" style="text-align:left; cursor:pointer; background:#fff; border:1px solid #e7eef7; border-radius:16px; padding:16px 18px; display:flex; flex-direction:column; gap:10px; transition:.15s;" style-hover="border-color:#bfdbfe; box-shadow:0 12px 26px -18px rgba(15,42,90,.5); transform:translateY(-2px);">
+                    <div style="display:flex; align-items:center; gap:8px;"><span style="width:9px; height:9px; border-radius:50%; background:{{ c.dot }};"></span><span style="font-size:13px; color:#64748b; font-weight:500;">{{ c.label }}</span></div>
+                    <div style="display:flex; align-items:flex-end; gap:6px;"><span style="font-size:30px; font-weight:700; line-height:1; color:#0f172a; font-variant-numeric:tabular-nums;">{{ c.value }}</span><span style="font-size:12.5px; color:#94a3b8; margin-bottom:3px;">ใบ</span></div>
+                  </button>
+                </sc-for>
+              </div>
+
+              <div style="background:#fff; border:1px solid #e7eef7; border-radius:18px; overflow:hidden;">
+                <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; padding:18px 20px; border-bottom:1px solid #eef2f7;">
+                  <h2 style="font-size:16px; font-weight:700; margin:0; color:#0f172a;">ใบค้างยาล่าสุด</h2>
+                  <button onClick="{{ goListAll }}" style="font-size:13px; font-weight:600; color:#2563eb; background:none; border:none; cursor:pointer;">ดูทั้งหมด →</button>
+                </div>
+
+                <sc-if value="{{ desktopTable }}">
+                  <table style="width:100%; border-collapse:collapse;">
+                    <thead><tr>
+                      <th style="text-align:left; font-size:12px; color:#94a3b8; font-weight:600; padding:12px 20px;">เลขใบค้าง / HN</th>
+                      <th style="text-align:left; font-size:12px; color:#94a3b8; font-weight:600; padding:12px 14px;">ผู้ป่วย</th>
+                      <th style="text-align:left; font-size:12px; color:#94a3b8; font-weight:600; padding:12px 14px;">รายการ</th>
+                      <th style="text-align:left; font-size:12px; color:#94a3b8; font-weight:600; padding:12px 14px;">สถานะ</th>
+                      <th style="text-align:left; font-size:12px; color:#94a3b8; font-weight:600; padding:12px 14px;">อัปเดต</th>
+                      <th style="text-align:right; font-size:12px; color:#94a3b8; font-weight:600; padding:12px 20px;">จัดการ</th>
+                    </tr></thead>
+                    <tbody>
+                      <sc-for list="{{ recent }}" as="t" hint-placeholder-count="6">
+                        <tr style="border-top:1px solid #f1f5f9;">
+                          <td style="padding:13px 20px;"><div style="font-size:13.5px; font-weight:700; color:#0f172a; font-variant-numeric:tabular-nums;">{{ t.no }}</div><div style="font-size:12px; color:#94a3b8;">HN {{ t.hn }}</div></td>
+                          <td style="padding:13px 14px; font-size:14px; color:#334155;">{{ t.name }}</td>
+                          <td style="padding:13px 14px; font-size:13.5px; color:#64748b;">{{ t.itemText }}</td>
+                          <td style="padding:13px 14px;"><span style="display:inline-flex; align-items:center; gap:6px; padding:4px 10px; border-radius:999px; font-size:12px; font-weight:600; background:{{ t.sBg }}; color:{{ t.sText }}; border:1px solid {{ t.sBorder }};"><span style="width:7px; height:7px; border-radius:50%; background:{{ t.dot }};"></span>{{ t.sLabel }}</span></td>
+                          <td style="padding:13px 14px; font-size:12.5px; color:#94a3b8;">{{ t.updatedRel }}</td>
+                          <td style="padding:13px 20px; text-align:right; white-space:nowrap;">
+                            <button onClick="{{ t.onView }}" style="font-size:12.5px; font-weight:600; color:#1d4ed8; background:#eff6ff; border:1px solid #dbeafe; border-radius:9px; padding:6px 11px; cursor:pointer; margin-right:6px;" style-hover="background:#dbeafe;">ดู</button>
+                            <button onClick="{{ t.onPrint }}" style="font-size:12.5px; font-weight:600; color:#475569; background:#fff; border:1px solid #e2e8f0; border-radius:9px; padding:6px 11px; cursor:pointer;" style-hover="background:#f8fafc;">พิมพ์ QR</button>
+                          </td>
+                        </tr>
+                      </sc-for>
+                    </tbody>
+                  </table>
+                </sc-if>
+
+                <sc-if value="{{ mobileCards }}">
+                  <div style="display:flex; flex-direction:column;">
+                    <sc-for list="{{ recent }}" as="t" hint-placeholder-count="5">
+                      <div style="padding:15px 18px; border-top:1px solid #f1f5f9;">
+                        <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:10px; margin-bottom:8px;">
+                          <div><div style="font-size:14px; font-weight:700; color:#0f172a;">{{ t.no }}</div><div style="font-size:12.5px; color:#64748b;">{{ t.name }} · HN {{ t.hn }}</div></div>
+                          <span style="display:inline-flex; align-items:center; gap:6px; padding:4px 10px; border-radius:999px; font-size:12px; font-weight:600; background:{{ t.sBg }}; color:{{ t.sText }}; border:1px solid {{ t.sBorder }}; white-space:nowrap;"><span style="width:7px; height:7px; border-radius:50%; background:{{ t.dot }};"></span>{{ t.sLabel }}</span>
+                        </div>
+                        <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
+                          <span style="font-size:12.5px; color:#94a3b8;">{{ t.itemText }} · {{ t.updatedRel }}</span>
+                          <div style="display:flex; gap:6px;"><button onClick="{{ t.onView }}" style="font-size:12.5px; font-weight:600; color:#1d4ed8; background:#eff6ff; border:1px solid #dbeafe; border-radius:9px; padding:6px 12px; cursor:pointer;">ดู</button><button onClick="{{ t.onPrint }}" style="font-size:12.5px; font-weight:600; color:#475569; background:#fff; border:1px solid #e2e8f0; border-radius:9px; padding:6px 12px; cursor:pointer;">พิมพ์</button></div>
+                        </div>
+                      </div>
+                    </sc-for>
+                  </div>
+                </sc-if>
+              </div>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ showCreate }}" hint-placeholder-val="{{ true }}">
+            <div style="animation:fadeUp .35s ease both; max-width:900px;">
+              <button onClick="{{ onCancelCreate }}" style="display:inline-flex; align-items:center; gap:6px; background:none; border:none; color:#64748b; font-size:13.5px; font-weight:600; cursor:pointer; padding:0; margin-bottom:14px;" style-hover="color:#2563eb;">← กลับหน้าหลัก</button>
+              <h1 style="font-size:clamp(20px,3vw,26px); font-weight:700; margin:0 0 4px; color:#0f172a;">สร้างใบค้างยา</h1>
+              <p style="font-size:13.5px; color:#64748b; margin:0 0 22px;">กรอกข้อมูลผู้ป่วยและรายการยาที่ค้าง ระบบจะออกเลขใบค้างยาและ QR Code ให้อัตโนมัติ</p>
+
+              <div style="background:#fff; border:1px solid #e7eef7; border-radius:18px; padding:22px; margin-bottom:16px;">
+                <h2 style="font-size:16px; font-weight:700; margin:0 0 3px; color:#0f172a;">ข้อมูลผู้ป่วย</h2>
+                <p style="font-size:12.5px; color:#94a3b8; margin:0;">ข้อมูลพื้นฐานสำหรับติดตามใบค้างยา</p>
+                <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:15px; margin-top:18px;">
+                  <div><label style="display:block; font-size:12.5px; font-weight:600; color:#475569; margin-bottom:6px;">HN <span style="color:#e11d48;">*</span></label><input value="{{ fHn }}" onChange="{{ onFHn }}" placeholder="เช่น 0012453" style="width:100%; padding:11px 13px; border:1px solid #cbd5e1; border-radius:11px; font-size:14px; color:#0f172a; outline:none; transition:.15s;" style-focus="border-color:#2563eb; box-shadow:0 0 0 3px rgba(37,99,235,.15);"></div>
+                  <div><label style="display:block; font-size:12.5px; font-weight:600; color:#475569; margin-bottom:6px;">ชื่อ-สกุลผู้ป่วย <span style="color:#e11d48;">*</span></label><input value="{{ fName }}" onChange="{{ onFName }}" placeholder="เช่น สมชาย ใจดี" style="width:100%; padding:11px 13px; border:1px solid #cbd5e1; border-radius:11px; font-size:14px; color:#0f172a; outline:none; transition:.15s;" style-focus="border-color:#2563eb; box-shadow:0 0 0 3px rgba(37,99,235,.15);"></div>
+                  <div><label style="display:block; font-size:12.5px; font-weight:600; color:#475569; margin-bottom:6px;">เบอร์โทรศัพท์</label><input value="{{ fPhone }}" onChange="{{ onFPhone }}" placeholder="08x-xxx-xxxx" inputMode="tel" style="width:100%; padding:11px 13px; border:1px solid #cbd5e1; border-radius:11px; font-size:14px; color:#0f172a; outline:none; transition:.15s;" style-focus="border-color:#2563eb; box-shadow:0 0 0 3px rgba(37,99,235,.15);"></div>
+                  <div style="grid-column:1/-1;"><label style="display:block; font-size:12.5px; font-weight:600; color:#475569; margin-bottom:6px;">หมายเหตุ</label><input value="{{ fNote }}" onChange="{{ onFNote }}" placeholder="ข้อมูลเพิ่มเติม เช่น นัดติดตาม / ยาเข้าวันที่" style="width:100%; padding:11px 13px; border:1px solid #cbd5e1; border-radius:11px; font-size:14px; color:#0f172a; outline:none; transition:.15s;" style-focus="border-color:#2563eb; box-shadow:0 0 0 3px rgba(37,99,235,.15);"></div>
+                </div>
+              </div>
+
+              <div style="background:#fff; border:1px solid #e7eef7; border-radius:18px; padding:22px; margin-bottom:18px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;">
+                  <div><h2 style="font-size:16px; font-weight:700; margin:0 0 3px; color:#0f172a;">รายการยาที่ค้าง</h2><p style="font-size:12.5px; color:#94a3b8; margin:0;">เพิ่มรายการยาที่ผู้ป่วยยังไม่ได้รับ</p></div>
+                  <button onClick="{{ onAddDrug }}" style="display:inline-flex; align-items:center; gap:7px; padding:9px 15px; background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe; border-radius:11px; font-size:13.5px; font-weight:700; cursor:pointer;" style-hover="background:#dbeafe;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"><line x1="12" y1="6" x2="12" y2="18"/><line x1="6" y1="12" x2="18" y2="12"/></svg>เพิ่มรายการยา</button>
+                </div>
+                <div style="display:flex; flex-direction:column; gap:12px; margin-top:18px;">
+                  <sc-for list="{{ drugRows }}" as="row" hint-placeholder-count="2">
+                    <div style="display:flex; flex-wrap:wrap; gap:11px; align-items:flex-end; padding:14px; border:1px solid #eef2f7; border-radius:14px; background:#fafcff;">
+                      <div style="display:flex; align-items:center; justify-content:center; width:28px; height:28px; border-radius:8px; background:#e0ecfd; color:#1d4ed8; font-size:13px; font-weight:700; flex-shrink:0; align-self:flex-end; margin-bottom:1px;">{{ row.idx }}</div>
+                      <div style="flex:3 1 200px; min-width:150px;"><label style="display:block; font-size:11.5px; font-weight:600; color:#64748b; margin-bottom:5px;">ชื่อยา</label><input value="{{ row.name }}" onChange="{{ row.onName }}" placeholder="เช่น Metformin 500 mg" style="width:100%; padding:10px 12px; border:1px solid #cbd5e1; border-radius:10px; font-size:13.5px; color:#0f172a; outline:none;" style-focus="border-color:#2563eb; box-shadow:0 0 0 3px rgba(37,99,235,.14);"></div>
+                      <div style="flex:1 1 80px; min-width:72px;"><label style="display:block; font-size:11.5px; font-weight:600; color:#64748b; margin-bottom:5px;">จำนวนค้าง</label><input value="{{ row.qty }}" onChange="{{ row.onQty }}" placeholder="0" inputMode="numeric" style="width:100%; padding:10px 12px; border:1px solid #cbd5e1; border-radius:10px; font-size:13.5px; color:#0f172a; outline:none;" style-focus="border-color:#2563eb; box-shadow:0 0 0 3px rgba(37,99,235,.14);"></div>
+                      <div style="flex:1 1 90px; min-width:84px;"><label style="display:block; font-size:11.5px; font-weight:600; color:#64748b; margin-bottom:5px;">หน่วย</label><select value="{{ row.unit }}" onChange="{{ row.onUnit }}" style="width:100%; padding:10px 10px; border:1px solid #cbd5e1; border-radius:10px; font-size:13.5px; color:#0f172a; outline:none; background:#fff;" style-focus="border-color:#2563eb;"><option>เม็ด</option><option>แคปซูล</option><option>ขวด</option><option>หลอด</option><option>แผง</option><option>ชุด</option><option>ซอง</option></select></div>
+                      <div style="flex:2 1 130px; min-width:110px;"><label style="display:block; font-size:11.5px; font-weight:600; color:#64748b; margin-bottom:5px;">หมายเหตุ</label><input value="{{ row.note }}" onChange="{{ row.onNote }}" placeholder="—" style="width:100%; padding:10px 12px; border:1px solid #cbd5e1; border-radius:10px; font-size:13.5px; color:#0f172a; outline:none;" style-focus="border-color:#2563eb; box-shadow:0 0 0 3px rgba(37,99,235,.14);"></div>
+                      <sc-if value="{{ row.canRemove }}"><button onClick="{{ row.onRemove }}" title="ลบรายการ" style="display:inline-flex; align-items:center; justify-content:center; width:38px; height:39px; border:1px solid #fecdd3; background:#fff1f2; color:#e11d48; border-radius:10px; cursor:pointer; flex-shrink:0;" style-hover="background:#ffe4e6;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg></button></sc-if>
+                    </div>
+                  </sc-for>
+                </div>
+              </div>
+
+              <div style="display:flex; justify-content:flex-end; gap:12px; flex-wrap:wrap;">
+                <button onClick="{{ onCancelCreate }}" style="padding:12px 22px; background:#fff; color:#475569; border:1px solid #cbd5e1; border-radius:12px; font-size:14.5px; font-weight:600; cursor:pointer;" style-hover="background:#f8fafc;">ยกเลิก</button>
+                <button onClick="{{ onSave }}" style="display:inline-flex; align-items:center; gap:8px; padding:12px 26px; background:#2563eb; color:#fff; border:none; border-radius:12px; font-size:14.5px; font-weight:700; cursor:pointer;" style-hover="background:#1d4ed8;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>บันทึกใบค้างยา</button>
+              </div>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ showList }}" hint-placeholder-val="{{ true }}">
+            <div style="animation:fadeUp .35s ease both;">
+              <div style="display:flex; flex-wrap:wrap; align-items:flex-end; justify-content:space-between; gap:14px; margin-bottom:20px;">
+                <div><h1 style="font-size:clamp(20px,3vw,26px); font-weight:700; margin:0 0 4px; color:#0f172a;">รายการใบค้างยา</h1><p style="font-size:13.5px; color:#64748b; margin:0;">พบ {{ listCount }} รายการ</p></div>
+                <button onClick="{{ goCreate }}" style="display:inline-flex; align-items:center; gap:8px; padding:11px 18px; background:#2563eb; color:#fff; border:none; border-radius:12px; font-size:14px; font-weight:700; cursor:pointer;" style-hover="background:#1d4ed8;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><line x1="12" y1="6" x2="12" y2="18"/><line x1="6" y1="12" x2="18" y2="12"/></svg>สร้างใบค้างยา</button>
+              </div>
+
+              <div style="background:#fff; border:1px solid #e7eef7; border-radius:18px; padding:16px 18px; margin-bottom:16px;">
+                <div style="position:relative; margin-bottom:14px;">
+                  <span style="position:absolute; left:14px; top:50%; transform:translateY(-50%); color:#94a3b8; display:inline-flex;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="7"/><line x1="16.5" y1="16.5" x2="21" y2="21"/></svg></span>
+                  <input value="{{ q }}" onChange="{{ onQ }}" placeholder="ค้นหาด้วยเลขใบค้างยา, HN หรือชื่อผู้ป่วย" style="width:100%; padding:12px 14px 12px 42px; border:1px solid #cbd5e1; border-radius:12px; font-size:14px; color:#0f172a; outline:none;" style-focus="border-color:#2563eb; box-shadow:0 0 0 3px rgba(37,99,235,.15);">
+                </div>
+                <div style="display:flex; flex-wrap:wrap; gap:8px; align-items:center;">
+                  <span style="font-size:12.5px; color:#94a3b8; margin-right:2px;">สถานะ:</span>
+                  <sc-for list="{{ chips }}" as="ch" hint-placeholder-count="6">
+                    <button onClick="{{ ch.onClick }}" style="padding:7px 14px; border-radius:999px; font-size:13px; font-weight:600; cursor:pointer; background:{{ ch.bg }}; color:{{ ch.col }}; border:1px solid {{ ch.border }}; transition:.12s;">{{ ch.label }}</button>
+                  </sc-for>
+                </div>
+              </div>
+
+              <sc-if value="{{ filteredEmpty }}">
+                <div style="background:#fff; border:1px solid #e7eef7; border-radius:18px; padding:56px 24px; text-align:center;">
+                  <div style="display:inline-flex; align-items:center; justify-content:center; width:66px; height:66px; border-radius:50%; background:#eff6ff; color:#93c5fd; margin-bottom:16px;"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="7"/><line x1="16.5" y1="16.5" x2="21" y2="21"/></svg></div>
+                  <h3 style="font-size:16px; font-weight:700; color:#334155; margin:0 0 6px;">ไม่พบใบค้างยาที่ตรงกับเงื่อนไข</h3>
+                  <p style="font-size:13.5px; color:#94a3b8; margin:0 0 18px;">ลองปรับคำค้นหาหรือตัวกรองสถานะใหม่อีกครั้ง</p>
+                  <button onClick="{{ clearFilters }}" style="padding:10px 20px; background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe; border-radius:11px; font-size:13.5px; font-weight:700; cursor:pointer;" style-hover="background:#dbeafe;">ล้างตัวกรองทั้งหมด</button>
+                </div>
+              </sc-if>
+
+              <sc-if value="{{ hasResults }}">
+              <div style="background:#fff; border:1px solid #e7eef7; border-radius:18px; overflow:hidden;">
+                <sc-if value="{{ desktopTable }}">
+                  <table style="width:100%; border-collapse:collapse;">
+                    <thead><tr>
+                      <th style="text-align:left; font-size:12px; color:#94a3b8; font-weight:600; padding:13px 20px;">เลขใบค้าง</th>
+                      <th style="text-align:left; font-size:12px; color:#94a3b8; font-weight:600; padding:13px 14px;">HN</th>
+                      <th style="text-align:left; font-size:12px; color:#94a3b8; font-weight:600; padding:13px 14px;">ชื่อผู้ป่วย</th>
+                      <th style="text-align:left; font-size:12px; color:#94a3b8; font-weight:600; padding:13px 14px;">รายการ</th>
+                      <th style="text-align:left; font-size:12px; color:#94a3b8; font-weight:600; padding:13px 14px;">สถานะ</th>
+                      <th style="text-align:left; font-size:12px; color:#94a3b8; font-weight:600; padding:13px 14px;">วันที่สร้าง</th>
+                      <th style="text-align:right; font-size:12px; color:#94a3b8; font-weight:600; padding:13px 20px;">จัดการ</th>
+                    </tr></thead>
+                    <tbody>
+                      <sc-for list="{{ filtered }}" as="t" hint-placeholder-count="6">
+                        <tr style="border-top:1px solid #f1f5f9;">
+                          <td style="padding:13px 20px; font-size:13.5px; font-weight:700; color:#0f172a; font-variant-numeric:tabular-nums;">{{ t.no }}</td>
+                          <td style="padding:13px 14px; font-size:13px; color:#64748b; font-variant-numeric:tabular-nums;">{{ t.hn }}</td>
+                          <td style="padding:13px 14px; font-size:14px; color:#334155;">{{ t.name }}</td>
+                          <td style="padding:13px 14px; font-size:13.5px; color:#64748b;">{{ t.itemText }}</td>
+                          <td style="padding:13px 14px;"><span style="display:inline-flex; align-items:center; gap:6px; padding:4px 10px; border-radius:999px; font-size:12px; font-weight:600; background:{{ t.sBg }}; color:{{ t.sText }}; border:1px solid {{ t.sBorder }};"><span style="width:7px; height:7px; border-radius:50%; background:{{ t.dot }};"></span>{{ t.sLabel }}</span></td>
+                          <td style="padding:13px 14px; font-size:12.5px; color:#94a3b8;">{{ t.createdThai }}</td>
+                          <td style="padding:13px 20px; text-align:right; white-space:nowrap;">
+                            <button onClick="{{ t.onView }}" style="font-size:12.5px; font-weight:600; color:#1d4ed8; background:#eff6ff; border:1px solid #dbeafe; border-radius:9px; padding:6px 11px; cursor:pointer; margin-right:6px;" style-hover="background:#dbeafe;">ดู</button>
+                            <button onClick="{{ t.onPrint }}" style="font-size:12.5px; font-weight:600; color:#475569; background:#fff; border:1px solid #e2e8f0; border-radius:9px; padding:6px 11px; cursor:pointer;" style-hover="background:#f8fafc;">พิมพ์ QR</button>
+                          </td>
+                        </tr>
+                      </sc-for>
+                    </tbody>
+                  </table>
+                </sc-if>
+                <sc-if value="{{ mobileCards }}">
+                  <div style="display:flex; flex-direction:column;">
+                    <sc-for list="{{ filtered }}" as="t" hint-placeholder-count="5">
+                      <div style="padding:15px 18px; border-top:1px solid #f1f5f9;">
+                        <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:10px; margin-bottom:8px;">
+                          <div><div style="font-size:14px; font-weight:700; color:#0f172a;">{{ t.no }}</div><div style="font-size:12.5px; color:#64748b;">{{ t.name }} · HN {{ t.hn }}</div></div>
+                          <span style="display:inline-flex; align-items:center; gap:6px; padding:4px 10px; border-radius:999px; font-size:12px; font-weight:600; background:{{ t.sBg }}; color:{{ t.sText }}; border:1px solid {{ t.sBorder }}; white-space:nowrap;"><span style="width:7px; height:7px; border-radius:50%; background:{{ t.dot }};"></span>{{ t.sLabel }}</span>
+                        </div>
+                        <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
+                          <span style="font-size:12px; color:#94a3b8;">{{ t.itemText }} · {{ t.createdThai }}</span>
+                          <div style="display:flex; gap:6px;"><button onClick="{{ t.onView }}" style="font-size:12.5px; font-weight:600; color:#1d4ed8; background:#eff6ff; border:1px solid #dbeafe; border-radius:9px; padding:6px 12px; cursor:pointer;">ดู</button><button onClick="{{ t.onPrint }}" style="font-size:12.5px; font-weight:600; color:#475569; background:#fff; border:1px solid #e2e8f0; border-radius:9px; padding:6px 12px; cursor:pointer;">พิมพ์</button></div>
+                        </div>
+                      </div>
+                    </sc-for>
+                  </div>
+                </sc-if>
+              </div>
+              </sc-if>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ showDetail }}" hint-placeholder-val="{{ true }}">
+            <sc-if value="{{ activeTicket }}">
+              <div style="animation:fadeUp .35s ease both;">
+                <button onClick="{{ goListAll }}" style="display:inline-flex; align-items:center; gap:6px; background:none; border:none; color:#64748b; font-size:13.5px; font-weight:600; cursor:pointer; padding:0; margin-bottom:14px;" style-hover="color:#2563eb;">← กลับไปรายการใบค้างยา</button>
+
+                <div style="display:flex; flex-wrap:wrap; align-items:flex-start; justify-content:space-between; gap:14px; margin-bottom:20px;">
+                  <div>
+                    <div style="font-size:12.5px; color:#94a3b8; margin-bottom:4px;">เลขที่ใบค้างยา</div>
+                    <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+                      <h1 style="font-size:clamp(22px,3.4vw,30px); font-weight:700; margin:0; color:#0f172a; font-variant-numeric:tabular-nums;">{{ activeTicket.no }}</h1>
+                      <span style="display:inline-flex; align-items:center; gap:7px; padding:6px 14px; border-radius:999px; font-size:13px; font-weight:700; background:{{ activeTicket.sBg }}; color:{{ activeTicket.sText }}; border:1px solid {{ activeTicket.sBorder }};"><span style="width:8px; height:8px; border-radius:50%; background:{{ activeTicket.dot }};"></span>{{ activeTicket.sLabel }}</span>
+                    </div>
+                    <div style="font-size:13px; color:#94a3b8; margin-top:6px;">สร้างเมื่อ {{ activeTicket.createdThai }} · อัปเดต {{ activeTicket.updatedRel }}</div>
+                  </div>
+                  <button onClick="{{ onPrintActive }}" style="display:inline-flex; align-items:center; gap:8px; padding:11px 18px; background:#2563eb; color:#fff; border:none; border-radius:12px; font-size:14px; font-weight:700; cursor:pointer;" style-hover="background:#1d4ed8;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8" rx="1"/></svg>พิมพ์ QR / สลิป</button>
+                </div>
+
+                <div style="display:flex; flex-wrap:wrap; gap:16px; align-items:flex-start;">
+                  <div style="flex:2 1 360px; min-width:0; display:flex; flex-direction:column; gap:16px;">
+                    <div style="background:#fff; border:1px solid #e7eef7; border-radius:18px; padding:22px;">
+                      <h2 style="font-size:15.5px; font-weight:700; margin:0 0 16px; color:#0f172a;">ข้อมูลผู้ป่วย</h2>
+                      <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:18px 16px;">
+                        <div><div style="font-size:12px; color:#94a3b8; margin-bottom:3px;">HN</div><div style="font-size:14.5px; font-weight:600; color:#0f172a; font-variant-numeric:tabular-nums;">{{ activeTicket.hn }}</div></div>
+                        <div><div style="font-size:12px; color:#94a3b8; margin-bottom:3px;">ชื่อ-สกุล</div><div style="font-size:14.5px; font-weight:600; color:#0f172a;">{{ activeTicket.name }}</div></div>
+                        <div><div style="font-size:12px; color:#94a3b8; margin-bottom:3px;">เบอร์โทรศัพท์</div><div style="font-size:14.5px; font-weight:600; color:#0f172a; font-variant-numeric:tabular-nums;">{{ activeTicket.phone }}</div></div>
+                        <div style="grid-column:1/-1;"><div style="font-size:12px; color:#94a3b8; margin-bottom:3px;">หมายเหตุ</div><div style="font-size:14px; color:#475569;">{{ activeTicket.note }}</div></div>
+                      </div>
+                    </div>
+
+                    <div style="background:#fff; border:1px solid #e7eef7; border-radius:18px; overflow:hidden;">
+                      <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; padding:18px 22px 16px;">
+                        <h2 style="font-size:15.5px; font-weight:700; margin:0; color:#0f172a;">รายการยาที่ค้าง</h2>
+                        <span style="font-size:12.5px; font-weight:600; color:#1d4ed8; background:#eff6ff; border:1px solid #dbeafe; padding:3px 10px; border-radius:999px;">{{ activeTicket.itemCount }} รายการ</span>
+                      </div>
+                      <sc-if value="{{ desktopTable }}">
+                        <table style="width:100%; border-collapse:collapse;">
+                          <thead><tr>
+                            <th style="text-align:left; font-size:12px; color:#94a3b8; font-weight:600; padding:10px 22px;">ชื่อยา</th>
+                            <th style="text-align:center; font-size:12px; color:#94a3b8; font-weight:600; padding:10px 10px;">จำนวนค้าง</th>
+                            <th style="text-align:left; font-size:12px; color:#94a3b8; font-weight:600; padding:10px 10px;">หน่วย</th>
+                            <th style="text-align:left; font-size:12px; color:#94a3b8; font-weight:600; padding:10px 14px;">สถานะ</th>
+                            <th style="text-align:left; font-size:12px; color:#94a3b8; font-weight:600; padding:10px 22px;">หมายเหตุ</th>
+                          </tr></thead>
+                          <tbody>
+                            <sc-for list="{{ activeTicket.items }}" as="it" hint-placeholder-count="2">
+                              <tr style="border-top:1px solid #f1f5f9;">
+                                <td style="padding:13px 22px; font-size:14px; font-weight:600; color:#0f172a;">{{ it.name }}</td>
+                                <td style="padding:13px 10px; font-size:14px; color:#334155; text-align:center; font-variant-numeric:tabular-nums; font-weight:600;">{{ it.qty }}</td>
+                                <td style="padding:13px 10px; font-size:13.5px; color:#64748b;">{{ it.unit }}</td>
+                                <td style="padding:13px 14px;"><span style="display:inline-flex; align-items:center; gap:6px; padding:3px 9px; border-radius:999px; font-size:11.5px; font-weight:600; background:{{ it.sBg }}; color:{{ it.sText }}; border:1px solid {{ it.sBorder }};"><span style="width:6px; height:6px; border-radius:50%; background:{{ it.dot }};"></span>{{ it.sLabel }}</span></td>
+                                <td style="padding:13px 22px; font-size:13px; color:#94a3b8;">{{ it.note }}</td>
+                              </tr>
+                            </sc-for>
+                          </tbody>
+                        </table>
+                      </sc-if>
+                      <sc-if value="{{ mobileCards }}">
+                        <div style="display:flex; flex-direction:column;">
+                          <sc-for list="{{ activeTicket.items }}" as="it" hint-placeholder-count="2">
+                            <div style="padding:14px 18px; border-top:1px solid #f1f5f9;">
+                              <div style="display:flex; justify-content:space-between; gap:10px; margin-bottom:6px;"><span style="font-size:14px; font-weight:600; color:#0f172a;">{{ it.name }}</span><span style="display:inline-flex; align-items:center; gap:5px; padding:3px 9px; border-radius:999px; font-size:11px; font-weight:600; background:{{ it.sBg }}; color:{{ it.sText }}; border:1px solid {{ it.sBorder }}; white-space:nowrap;"><span style="width:6px; height:6px; border-radius:50%; background:{{ it.dot }};"></span>{{ it.sLabel }}</span></div>
+                              <div style="font-size:13px; color:#64748b;">ค้าง {{ it.qty }} {{ it.unit }} · {{ it.note }}</div>
+                            </div>
+                          </sc-for>
+                        </div>
+                      </sc-if>
+                    </div>
+                  </div>
+
+                  <div style="flex:1 1 270px; min-width:0; display:flex; flex-direction:column; gap:16px;">
+                    <div style="background:#fff; border:1px solid #e7eef7; border-radius:18px; padding:22px;">
+                      <h2 style="font-size:15.5px; font-weight:700; margin:0 0 18px; color:#0f172a;">ความคืบหน้า</h2>
+                      <sc-if value="{{ activeTicket.isCancelled }}"><div style="display:flex; gap:9px; align-items:center; padding:12px 14px; background:#fff1f2; border:1px solid #fecdd3; border-radius:12px; color:#be123c; font-size:13.5px; font-weight:600;"><span style="width:9px; height:9px; border-radius:50%; background:#f43f5e;"></span>ใบค้างยานี้ถูกยกเลิกแล้ว</div></sc-if>
+                      <sc-if value="{{ activeTicket.timeline }}">
+                        <div style="display:flex; flex-direction:column;">
+                          <sc-for list="{{ activeTicket.timeline }}" as="tl" hint-placeholder-count="4">
+                            <div style="display:flex; gap:13px;">
+                              <div style="display:flex; flex-direction:column; align-items:center;">
+                                <span style="width:13px; height:13px; border-radius:50%; background:{{ tl.dot }}; flex-shrink:0; margin-top:2px;"></span>
+                                <sc-if value="{{ tl.notLast }}"><span style="width:2px; flex:1; background:#e8eef6; min-height:20px; margin:3px 0;"></span></sc-if>
+                              </div>
+                              <div style="padding-bottom:6px;"><div style="font-size:14px; font-weight:600; color:{{ tl.tcolor }};">{{ tl.label }}</div></div>
+                            </div>
+                          </sc-for>
+                        </div>
+                      </sc-if>
+                    </div>
+
+                    <div style="background:#fff; border:1px solid #e7eef7; border-radius:18px; padding:22px;">
+                      <h2 style="font-size:15.5px; font-weight:700; margin:0 0 3px; color:#0f172a;">เปลี่ยนสถานะ</h2>
+                      <p style="font-size:12.5px; color:#94a3b8; margin:0 0 16px;">อัปเดตสถานะการจัดยาของใบค้างนี้</p>
+                      <div style="display:flex; flex-direction:column; gap:8px;">
+                        <sc-for list="{{ statusBtns }}" as="b" hint-placeholder-count="4">
+                          <button onClick="{{ b.onClick }}" style="{{ b.style }}"><span style="width:9px; height:9px; border-radius:50%; background:{{ b.dot }}; flex-shrink:0;"></span>{{ b.label }}<sc-if value="{{ b.active }}"><span style="margin-left:auto; font-size:10.5px; font-weight:700; padding:2px 9px; border-radius:999px; border:1px solid currentColor;">ปัจจุบัน</span></sc-if></button>
+                        </sc-for>
+                      </div>
+                      <div style="height:1px; background:#eef2f7; margin:14px 0;"></div>
+                      <button onClick="{{ dCancel }}" style="display:flex; align-items:center; gap:10px; width:100%; padding:12px 14px; border-radius:12px; font-size:14px; font-weight:600; cursor:pointer; text-align:left; background:#fff; color:#be123c; border:1px solid #fecdd3; transition:.12s;" style-hover="background:#fff1f2;"><span style="width:9px; height:9px; border-radius:50%; background:#f43f5e; flex-shrink:0;"></span>ยกเลิกใบค้างยา<sc-if value="{{ curCancelled }}"><span style="margin-left:auto; font-size:10.5px; font-weight:700; padding:2px 9px; border-radius:999px; border:1px solid currentColor;">ปัจจุบัน</span></sc-if></button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </sc-if>
+          </sc-if>
+
+          <span data-main-end="1" style="display:none;"></span>
+        </main>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ showLookup }}" hint-placeholder-val="{{ true }}">
+    <div style="min-height:100vh; background:linear-gradient(180deg,#eef4fb 0%,#dbe9fb 100%); display:flex; flex-direction:column; align-items:center; justify-content:center; padding:36px 18px;">
+      <div style="display:flex; flex-direction:column; align-items:center; gap:8px; margin-bottom:24px; animation:fadeUp .4s ease both;">
+        <img src="assets/usc-logo.png" alt="USC+" style="height:46px;">
+        <div style="font-size:13px; color:#64748b; text-align:center;">ศูนย์การแพทย์เฉพาะทางและตรวจสุขภาพ อุตรดิตถ์</div>
+      </div>
+      <div style="width:100%; max-width:440px; background:#fff; border:1px solid #e2e8f0; border-radius:22px; padding:30px 28px; box-shadow:0 20px 46px -28px rgba(15,42,90,.45); animation:fadeUp .45s ease both;">
+        <h1 style="font-size:23px; font-weight:700; text-align:center; margin:0 0 8px; color:#0f172a;">ตรวจสอบสถานะยา</h1>
+        <p style="font-size:14px; color:#64748b; text-align:center; margin:0 0 24px; line-height:1.6;">กรอกเลขที่ใบค้างยาและเบอร์โทร 4 หลักท้าย<br>เพื่อตรวจสอบสถานะยาของท่าน</p>
+        <form onSubmit="{{ onLookup }}">
+          <label style="display:block; font-size:14px; font-weight:600; color:#334155; margin-bottom:7px;">เลขที่ใบค้างยา</label>
+          <input value="{{ lkCode }}" onChange="{{ onLkCode }}" placeholder="เช่น BO-20260626-0049" style="width:100%; padding:14px 15px; border:1px solid #cbd5e1; border-radius:13px; font-size:16px; color:#0f172a; outline:none; margin-bottom:18px;" style-focus="border-color:#2563eb; box-shadow:0 0 0 3px rgba(37,99,235,.16);">
+          <label style="display:block; font-size:14px; font-weight:600; color:#334155; margin-bottom:7px;">เบอร์โทร 4 หลักท้าย</label>
+          <input value="{{ lkPhone }}" onChange="{{ onLkPhone }}" placeholder="เช่น 4567" inputMode="numeric" maxLength="4" style="width:100%; padding:14px 15px; border:1px solid #cbd5e1; border-radius:13px; font-size:16px; color:#0f172a; outline:none; margin-bottom:24px; letter-spacing:.2em; font-variant-numeric:tabular-nums;" style-focus="border-color:#2563eb; box-shadow:0 0 0 3px rgba(37,99,235,.16);">
+          <button type="submit" style="display:flex; align-items:center; justify-content:center; gap:9px; width:100%; padding:15px; background:#2563eb; color:#fff; border:none; border-radius:13px; font-size:16px; font-weight:700; cursor:pointer;" style-hover="background:#1d4ed8;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="7"/><line x1="16.5" y1="16.5" x2="21" y2="21"/></svg>ตรวจสอบสถานะ</button>
+        </form>
+      </div>
+      <button onClick="{{ backLogin }}" style="margin-top:20px; background:none; border:none; color:#64748b; font-size:13.5px; font-weight:600; cursor:pointer;" style-hover="color:#2563eb;">สำหรับเจ้าหน้าที่ · เข้าสู่ระบบ →</button>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ showPublic }}" hint-placeholder-val="{{ true }}">
+    <sc-if value="{{ activeTicket }}">
+      <div style="min-height:100vh; background:linear-gradient(180deg,#eef4fb 0%,#dbe9fb 100%); display:flex; flex-direction:column; align-items:center; justify-content:center; padding:36px 18px;">
+        <div style="display:flex; flex-direction:column; align-items:center; gap:8px; margin-bottom:22px; animation:fadeUp .4s ease both;">
+          <img src="assets/usc-logo.png" alt="USC+" style="height:42px;">
+          <div style="font-size:12.5px; color:#64748b;">ระบบตรวจสอบสถานะยาออนไลน์</div>
+        </div>
+        <div style="width:100%; max-width:460px; background:#fff; border:1px solid #e2e8f0; border-radius:22px; padding:26px 24px 28px; box-shadow:0 20px 46px -28px rgba(15,42,90,.45); animation:fadeUp .45s ease both;">
+          <div style="text-align:center; margin-bottom:20px;">
+            <div style="font-size:13px; color:#94a3b8;">ใบค้างยาเลขที่</div>
+            <div style="font-size:22px; font-weight:700; color:#0f172a; font-variant-numeric:tabular-nums; letter-spacing:.02em;">{{ activeTicket.no }}</div>
+          </div>
+          <div style="background:{{ activeTicket.sBg }}; border:1px solid {{ activeTicket.sBorder }}; border-radius:18px; padding:30px 22px; text-align:center;">
+            <span style="display:inline-flex; align-items:center; justify-content:center; width:68px; height:68px; border-radius:50%; background:{{ activeTicket.dot }}; margin-bottom:16px; box-shadow:0 8px 20px -6px {{ activeTicket.dot }};"><span style="width:30px; height:30px; border-radius:50%; border:4px solid #fff;"></span></span>
+            <div style="font-size:clamp(23px,6vw,30px); font-weight:700; color:{{ activeTicket.sText }}; line-height:1.2;">{{ activeTicket.sLabel }}</div>
+            <p style="font-size:15px; color:{{ activeTicket.sText }}; opacity:.9; margin:12px 0 0; line-height:1.65; white-space:pre-line;">{{ activeTicket.sMsg }}</p>
+          </div>
+          <div style="display:flex; align-items:center; justify-content:center; gap:7px; margin-top:18px; font-size:13px; color:#94a3b8;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></svg>อัปเดตล่าสุด {{ activeTicket.updatedThai }}</div>
+          <button onClick="{{ onRefresh }}" style="display:flex; align-items:center; justify-content:center; gap:8px; width:100%; margin-top:20px; padding:14px; background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe; border-radius:13px; font-size:15px; font-weight:700; cursor:pointer;" style-hover="background:#dbeafe;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.5 15a9 9 0 1 1-2.1-9.4L23 10"/></svg>ตรวจสอบสถานะอีกครั้ง</button>
+          <div style="display:flex; align-items:flex-start; gap:8px; margin-top:16px; padding:12px 14px; background:#f8fafc; border-radius:12px; font-size:12.5px; color:#94a3b8; line-height:1.55;"><span style="flex-shrink:0; margin-top:1px;">🔒</span>เพื่อความปลอดภัย หน้านี้จะไม่แสดงข้อมูลส่วนตัวของผู้ป่วย หากมีข้อสงสัยกรุณาติดต่อห้องยาในเวลาทำการ</div>
+        </div>
+        <button onClick="{{ goLookupPage }}" style="margin-top:20px; background:none; border:none; color:#64748b; font-size:13.5px; font-weight:600; cursor:pointer;" style-hover="color:#2563eb;">← ตรวจสอบรายการอื่น</button>
+      </div>
+    </sc-if>
+  </sc-if>
+
+  <sc-if value="{{ showPrint }}" hint-placeholder-val="{{ true }}">
+    <sc-if value="{{ activeTicket }}">
+      <div class="print-wrap" style="min-height:100vh; background:#e8eef6; padding:26px 16px; display:flex; flex-direction:column; align-items:center;">
+        <div class="no-print" style="width:100%; max-width:420px; display:flex; gap:10px; margin-bottom:18px;">
+          <button onClick="{{ backDetail }}" style="flex:1; padding:12px; background:#fff; color:#475569; border:1px solid #cbd5e1; border-radius:12px; font-size:14px; font-weight:600; cursor:pointer;" style-hover="background:#f8fafc;">← กลับไปรายละเอียด</button>
+          <button onClick="{{ printNow }}" style="flex:1; display:inline-flex; align-items:center; justify-content:center; gap:7px; padding:12px; background:#2563eb; color:#fff; border:none; border-radius:12px; font-size:14px; font-weight:700; cursor:pointer;" style-hover="background:#1d4ed8;"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8" rx="1"/></svg>พิมพ์</button>
+        </div>
+
+        <div class="print-paper" style="width:100%; max-width:400px; background:#fff; border:1px solid #e2e8f0; border-radius:14px; padding:26px 24px; box-shadow:0 14px 36px -20px rgba(15,42,90,.45);">
+          <div style="display:flex; align-items:center; gap:11px; padding-bottom:15px; border-bottom:2px dashed #e2e8f0;">
+            <img src="assets/usc-logo.png" alt="USC+" style="height:38px;">
+            <div style="line-height:1.25;"><div style="font-size:15px; font-weight:700; color:#0f172a;">ใบค้างยา</div><div style="font-size:11px; color:#64748b;">ห้องยา USC+ · รพ.อุตรดิตถ์</div></div>
+            <div style="margin-left:auto; text-align:right;"><div style="font-size:10.5px; color:#94a3b8;">เลขที่</div><div style="font-size:14px; font-weight:700; color:#1d4ed8; font-variant-numeric:tabular-nums;">{{ activeTicket.no }}</div></div>
+          </div>
+          <div style="display:flex; justify-content:space-between; gap:12px; padding:15px 0;">
+            <div><div style="font-size:11px; color:#94a3b8; margin-bottom:2px;">ชื่อผู้ป่วย</div><div style="font-size:14px; font-weight:600; color:#0f172a;">{{ activeTicket.name }}</div></div>
+            <div style="text-align:right;"><div style="font-size:11px; color:#94a3b8; margin-bottom:2px;">วันที่ออกใบ</div><div style="font-size:13px; font-weight:600; color:#334155;">{{ activeTicket.createdThai }}</div></div>
+          </div>
+          <div style="background:#f8fafc; border-radius:12px; padding:13px 15px;">
+            <div style="font-size:11.5px; color:#94a3b8; margin-bottom:8px;">รายการยาที่ค้าง ({{ activeTicket.itemCount }} รายการ)</div>
+            <sc-for list="{{ activeTicket.items }}" as="it" hint-placeholder-count="2">
+              <div style="display:flex; justify-content:space-between; gap:10px; padding:4px 0; font-size:13.5px;"><span style="color:#334155;">{{ it.name }}</span><span style="color:#64748b; white-space:nowrap; font-variant-numeric:tabular-nums;">{{ it.qty }} {{ it.unit }}</span></div>
+            </sc-for>
+          </div>
+          <div style="text-align:center; padding-top:20px;">
+            <div style="font-size:13px; font-weight:600; color:#334155; margin-bottom:13px;">สแกนเพื่อตรวจสอบสถานะยา</div>
+            <sc-if value="{{ activeTicket.qrUrl }}"><img src="{{ activeTicket.qrUrl }}" alt="QR Code" style="width:186px; height:186px; image-rendering:pixelated; border:1px solid #eef2f7; border-radius:8px;"></sc-if>
+            <sc-if value="{{ noQr }}"><div style="width:186px; height:186px; margin:0 auto; display:flex; align-items:center; justify-content:center; border:1px dashed #cbd5e1; border-radius:8px; color:#94a3b8; font-size:12.5px;">กำลังสร้าง QR...</div></sc-if>
+            <div style="font-size:10.5px; color:#94a3b8; margin-top:12px; word-break:break-all;">{{ activeTicket.shortUrl }}</div>
+          </div>
+          <div style="text-align:center; font-size:10.5px; color:#cbd5e1; margin-top:16px; padding-top:13px; border-top:1px dashed #e2e8f0;">USC Pharmacy Backlog System · กระทรวงสาธารณสุข</div>
+        </div>
+
+        <button class="no-print" onClick="{{ viewPublic }}" style="margin-top:18px; background:none; border:none; color:#64748b; font-size:13px; font-weight:600; cursor:pointer;" style-hover="color:#2563eb;">เปิดหน้าสถานะที่ผู้ป่วยเห็น →</button>
+      </div>
+    </sc-if>
+  </sc-if>
+
+  <span data-end="1" style="display:none;"></span>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:&quot;100%&quot;,&quot;height&quot;:820},&quot;startScreen&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;login&quot;,&quot;options&quot;:[&quot;login&quot;,&quot;dashboard&quot;,&quot;list&quot;,&quot;create&quot;,&quot;detail&quot;,&quot;print&quot;,&quot;lookup&quot;,&quot;public&quot;],&quot;tsType&quot;:&quot;string&quot;,&quot;label&quot;:&quot;หน้าเริ่มต้น (พรีวิว)&quot;},&quot;qrBaseUrl&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;https://usc-rx.moph.go.th/status/&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;label&quot;:&quot;Base URL ของ QR สถานะ&quot;}}">
+class Component extends DCLogic {
+  constructor(props){
+    super(props);
+    const now = Date.now();
+    const m=60000, h=3600000, d=86400000;
+    this.api = window.MedBackOrder || {};
+    this.STATUS = this.api.STATUSES;
+    this.statusOrder = this.api.PUBLIC_TIMELINE_ORDER || ['preparing','ready','picked_up'];
+    this.staffStatusOrder = this.api.STAFF_STATUS_ORDER || ['preparing','ready','picked_up'];
+    this.isBackendReady = !!(this.api.isSupabaseConfigured && this.api.isSupabaseConfigured());
+    const T=(no,hn,name,phone,note,status,cAgo,uAgo,items)=>({
+      id:no, no:'BO-20260626-'+no, hn, name, phone, note:note||'', status,
+      createdAt: now-cAgo, updatedAt: now-uAgo,
+      token:'demo'+no+Math.random().toString(36).slice(2,10),
+      items: items.map(a=>({ name:a[0], qty:a[1], unit:a[2], note:a[3]||'', status:a[4]||status }))
+    });
+    const tickets = [
+      T('0051','0012453','สมชาย ใจดี','0817654329','ผู้ป่วยเบาหวาน นัดติดตาม 2 สัปดาห์','preparing',12*m,12*m,[['Metformin 500 mg',60,'เม็ด'],['Amlodipine 5 mg',30,'เม็ด']]),
+      T('0050','0009921','มาลี ศรีสุข','0851122033','','preparing',35*m,8*m,[['Atorvastatin 40 mg',30,'เม็ด'],['Aspirin 81 mg',30,'เม็ด'],['Losartan 50 mg',30,'เม็ด']]),
+      T('0049','0034510','ประเสริฐ มั่งมีทรัพย์','0861234567','','ready',2*h,25*m,[['Insulin (NPH) 100 IU/ml',2,'ขวด'],['Salbutamol inhaler',1,'หลอด']]),
+      T('0048','0021188','วันเพ็ญ ทองอยู่','0894455667','','picked_up',3*h,55*m,[['Enalapril 5 mg',60,'เม็ด']]),
+      T('0047','0040277','อนุชา พงษ์เจริญ','0827788990','ยกเลิกตามคำขอผู้ป่วย','cancelled',5*h,2*h,[['Warfarin 2 mg',30,'เม็ด']]),
+      T('0046','0017650','กนกวรรณ แสงทอง','0865432198','','preparing',6*h,6*h,[['Simvastatin 20 mg',30,'เม็ด'],['Hydrochlorothiazide 25 mg',30,'เม็ด']]),
+      T('0045','0028349','บุญมา ใจงาม','0801239876','','preparing',26*h,3*h,[['Glipizide 5 mg',60,'เม็ด']]),
+      T('0044','0033102','สุดารัตน์ พ่วงพี','0843216540','','ready',28*h,90*m,[['Omeprazole 20 mg',28,'แคปซูล'],['Vitamin B1-6-12',30,'เม็ด']]),
+      T('0043','0046820','ธีรพงษ์ คงทน','0871119922','','picked_up',2*d,2*d-(3*h),[['Losartan 50 mg',30,'เม็ด']]),
+      T('0042','0019004','จำเนียร อยู่เย็น','0856677001','','preparing',2*d,2*d,[['Metformin 500 mg',90,'เม็ด'],['Atorvastatin 40 mg',30,'เม็ด']]),
+      T('0041','0051237','พิมพ์ใจ รักไทย','0832244668','','ready',3*d,4*h,[['Amlodipine 5 mg',30,'เม็ด']]),
+    ];
+    let initRoute = this.props.startScreen || 'login';
+    const tokenFromUrl = this.api.tokenFromLocation ? this.api.tokenFromLocation() : '';
+    if(tokenFromUrl){ initRoute = 'public'; }
+    const staffRoutes = ['dashboard','create','list','detail','print'];
+    this.state = {
+      route: initRoute,
+      authed: !this.isBackendReady && staffRoutes.indexOf(initRoute) >= 0,
+      user: { name:'ภก. ศิริพร วงศ์ทอง', role:'เภสัชกรห้องยา' },
+      activeId: '0049',
+      activeToken: tokenFromUrl,
+      publicTicket: null,
+      isMobile: false,
+      sidebarOpen: false,
+      qrReady: (typeof window!=='undefined' && !!window.qrcode),
+      loading:false,
+      loginEmail:this.isBackendReady?'':'pharmacist@usc.go.th', loginPass:this.isBackendReady?'':'demo1234',
+      q:'', statusFilter:'all',
+      form: this.blankForm(),
+      lkCode:'BO-20260626-0049', lkPhone:'4567',
+      tickets: this.isBackendReady ? [] : tickets,
+    };
+  }
+  blankForm(){ return { hn:'', name:'', phone:'', note:'', items:[{name:'',qty:'',unit:'เม็ด',note:''}] }; }
+
+  componentDidMount(){
+    this.onResize();
+    window.addEventListener('resize', this.onResize);
+    if(!window.qrcode || !window.Swal){
+      this._iv = setInterval(()=>{ if(window.qrcode && window.Swal){ clearInterval(this._iv); this.setState({qrReady:true}); } }, 150);
+    }
+    if(this.isBackendReady) this.bootstrapBackend();
+  }
+  componentWillUnmount(){ window.removeEventListener('resize', this.onResize); if(this._iv) clearInterval(this._iv); }
+  onResize = () => { const mob = window.innerWidth < 900; if(mob !== this.state.isMobile) this.setState({isMobile:mob}); };
+
+  fmtRel(ms){ const s=Math.floor((Date.now()-ms)/1000); if(s<60) return 'เมื่อสักครู่'; const mn=Math.floor(s/60); if(mn<60) return mn+' นาทีที่แล้ว'; const hr=Math.floor(mn/60); if(hr<24) return hr+' ชั่วโมงที่แล้ว'; const dy=Math.floor(hr/24); return dy+' วันที่แล้ว'; }
+  fmtDate(ms){ const dt=new Date(ms); const mo=['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.']; const hh=String(dt.getHours()).padStart(2,'0'), mm=String(dt.getMinutes()).padStart(2,'0'); return dt.getDate()+' '+mo[dt.getMonth()]+' '+((dt.getFullYear()+543)%100)+' · '+hh+':'+mm+' น.'; }
+  todayThai(){ const dt=new Date(); const dd=['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัสบดี','ศุกร์','เสาร์']; const mo=['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม']; return 'วัน'+dd[dt.getDay()]+'ที่ '+dt.getDate()+' '+mo[dt.getMonth()]+' '+(dt.getFullYear()+543); }
+
+  qr(text){ try{ if(!window.qrcode) return null; const q=window.qrcode(0,'M'); q.addData(text); q.make(); return q.createDataURL(6,12); }catch(e){ return null; } }
+
+  // ---- navigation ----
+  nav(route, id){ const ns={ route, sidebarOpen:false }; if(id!=null) ns.activeId=id; window.scrollTo&&window.scrollTo(0,0); this.setState(ns); }
+  goList(filter){ this.setState({ route:'list', statusFilter: filter||'all', sidebarOpen:false }); }
+  errText(err){ return (err && (err.message || err.error_description)) || String(err || 'เกิดข้อผิดพลาด'); }
+
+  // ---- swal helpers ----
+  confirm(opts){ return window.Swal.fire(Object.assign({ showCancelButton:true, confirmButtonColor:'#2563eb', cancelButtonColor:'#94a3b8', confirmButtonText:'ยืนยัน', cancelButtonText:'ยกเลิก', reverseButtons:true }, opts)); }
+  toast(title, icon){ window.Swal.fire({ toast:true, position:'top-end', timer:2400, timerProgressBar:true, showConfirmButton:false, icon:icon||'success', title }); }
+  warn(title, text){ window.Swal.fire({ icon:'warning', title, text, confirmButtonColor:'#2563eb', confirmButtonText:'ตกลง' }); }
+  error(title, err){ window.Swal.fire({ icon:'error', title, text:this.errText(err), confirmButtonColor:'#2563eb', confirmButtonText:'ตกลง' }); }
+
+  async bootstrapBackend(){
+    if(this.state.activeToken){ await this.loadPublicByToken(this.state.activeToken, false); return; }
+    try{
+      this.setState({loading:true});
+      const user = await this.api.authService.getCurrentUser();
+      if(!user){ this.setState({authed:false, route:'login', loading:false}); return; }
+      const tickets = await this.api.ticketService.listTickets();
+      this.setState(s=>({ user, authed:true, tickets, loading:false, route:s.route==='login'?'dashboard':s.route, activeId:(s.activeId && tickets.some(t=>t.id===s.activeId))?s.activeId:(tickets[0]&&tickets[0].id)||null }));
+    }catch(err){
+      this.setState({authed:false, route:'login', loading:false});
+      this.error('โหลดข้อมูลไม่สำเร็จ', err);
+    }
+  }
+  async reloadTickets(){
+    if(!this.isBackendReady) return this.state.tickets;
+    const tickets = await this.api.ticketService.listTickets();
+    this.setState(s=>({ tickets, activeId:(s.activeId && tickets.some(t=>t.id===s.activeId))?s.activeId:(tickets[0]&&tickets[0].id)||null }));
+    return tickets;
+  }
+
+  // ---- auth ----
+  onLogin = async (e)=>{ if(e&&e.preventDefault) e.preventDefault(); if(!this.state.loginEmail.trim()||!this.state.loginPass.trim()){ window.Swal.fire({icon:'error', title:'เข้าสู่ระบบไม่สำเร็จ', text:'กรุณากรอกอีเมลและรหัสผ่านให้ครบถ้วน', confirmButtonColor:'#2563eb', confirmButtonText:'ตกลง'}); return; } if(!this.isBackendReady){ this.setState({authed:true, route:'dashboard'}); this.toast('เข้าสู่ระบบสำเร็จ'); return; } try{ this.setState({loading:true}); const user=await this.api.authService.signIn(this.state.loginEmail.trim(), this.state.loginPass); const tickets=await this.api.ticketService.listTickets(); this.setState({user, tickets, authed:true, route:'dashboard', loading:false, activeId:(tickets[0]&&tickets[0].id)||null}); this.toast('เข้าสู่ระบบสำเร็จ'); }catch(err){ this.setState({loading:false}); this.error('เข้าสู่ระบบไม่สำเร็จ', err); } };
+  onLogout = async ()=>{ const r=await this.confirm({ icon:'question', title:'ออกจากระบบ?', text:'คุณต้องการออกจากระบบใช่หรือไม่' }); if(!r.isConfirmed) return; try{ if(this.isBackendReady) await this.api.authService.signOut(); this.setState({authed:false, route:'login', sidebarOpen:false, tickets:this.isBackendReady?[]:this.state.tickets}); }catch(err){ this.error('ออกจากระบบไม่สำเร็จ', err); } };
+
+  // ---- create form ----
+  setForm(k,v){ this.setState(s=>({ form: Object.assign({}, s.form, {[k]:v}) })); }
+  updDrug(i,k,v){ this.setState(s=>{ const items=s.form.items.map((it,idx)=> idx===i? Object.assign({},it,{[k]:v}) : it); return { form: Object.assign({}, s.form, {items}) }; }); }
+  addDrug(){ this.setState(s=>({ form: Object.assign({}, s.form, { items:[...s.form.items, {name:'',qty:'',unit:'เม็ด',note:''}] }) })); }
+  async rmDrug(i){ if(this.state.form.items.length<=1) return; const r=await this.confirm({ icon:'warning', title:'ลบรายการยานี้?', confirmButtonColor:'#e11d48', confirmButtonText:'ลบรายการ' }); if(!r.isConfirmed) return; this.setState(s=>({ form: Object.assign({}, s.form, { items: s.form.items.filter((_,idx)=>idx!==i) }) })); }
+  async onSave(){ const f=this.state.form; const valid=f.items.filter(it=>it.name.trim()); if(!f.name.trim()||!f.phone.trim()){ this.warn('ข้อมูลไม่ครบถ้วน','กรุณากรอกชื่อผู้ป่วยและเบอร์โทรศัพท์'); return; } if(!valid.length){ this.warn('ยังไม่มีรายการยา','กรุณาเพิ่มรายการยาที่ค้างอย่างน้อย 1 รายการ'); return; } if(valid.some(it=>!Number(it.qty)||Number(it.qty)<=0||!String(it.unit||'').trim())){ this.warn('รายการยาไม่ครบถ้วน','กรุณากรอกจำนวนและหน่วยของรายการยาทุกแถว'); return; } const r=await this.confirm({ icon:'question', title:'ยืนยันการบันทึกใบค้างยา?', text:'ระบบจะออกเลขใบค้างยาและสร้าง QR Code สำหรับผู้ป่วย' }); if(!r.isConfirmed) return; if(this.isBackendReady){ try{ this.setState({loading:true}); const created=await this.api.ticketService.createTicket({ patientName:f.name.trim(), hn:f.hn.trim(), phone:f.phone.trim(), note:f.note.trim(), items:valid.map(it=>({drugName:it.name.trim(), qty:Number(it.qty), unit:it.unit.trim(), note:it.note.trim()})) }); const tickets=await this.api.ticketService.listTickets(); const active=(created&&created.id)||((tickets.find(t=>t.no===(created&&created.ticket_no||created&&created.ticketNo))||{}).id); this.setState({tickets, form:this.blankForm(), loading:false, activeId:active||((tickets[0]&&tickets[0].id)||null)}); const no=(created&&created.ticket_no)||created.ticketNo; const res=await window.Swal.fire({ icon:'success', title:'บันทึกใบค้างยาสำเร็จ', html:'เลขที่ใบค้างยา <b>'+no+'</b>', showCancelButton:true, confirmButtonText:'พิมพ์ QR', cancelButtonText:'ดูรายละเอียด', confirmButtonColor:'#2563eb', cancelButtonColor:'#94a3b8', reverseButtons:true }); this.nav(res.isConfirmed? 'print':'detail', active); }catch(err){ this.setState({loading:false}); this.error('บันทึกใบค้างยาไม่สำเร็จ', err); } return; } const max=Math.max.apply(null, this.state.tickets.map(t=>parseInt(t.no.slice(-4),10))); const num=String(max+1).padStart(4,'0'); const today=new Date(); const y=today.getFullYear(), mo=String(today.getMonth()+1).padStart(2,'0'), da=String(today.getDate()).padStart(2,'0'); const no='BO-'+y+mo+da+'-'+num; const now=Date.now(); const nt={ id:num, no, hn:f.hn.trim()||'-', name:f.name.trim(), phone:f.phone.trim(), note:f.note.trim(), status:'preparing', createdAt:now, updatedAt:now, token:'demo'+num+Math.random().toString(36).slice(2,10), items: valid.map(it=>({ name:it.name.trim(), qty:it.qty, unit:it.unit, note:it.note.trim(), status:'preparing' })) }; this.setState(s=>({ tickets:[nt, ...s.tickets], form:this.blankForm() })); const res=await window.Swal.fire({ icon:'success', title:'บันทึกใบค้างยาสำเร็จ', html:'เลขที่ใบค้างยา <b>'+no+'</b>', showCancelButton:true, confirmButtonText:'พิมพ์ QR', cancelButtonText:'ดูรายละเอียด', confirmButtonColor:'#2563eb', cancelButtonColor:'#94a3b8', reverseButtons:true }); this.nav(res.isConfirmed? 'print':'detail', num); }
+  onCancelCreate = async ()=>{ const r=await this.confirm({ icon:'warning', title:'ยกเลิกการสร้างใบค้างยา?', text:'ข้อมูลที่กรอกจะไม่ถูกบันทึก', confirmButtonColor:'#e11d48', confirmButtonText:'ออกจากหน้านี้' }); if(r.isConfirmed){ this.setState({form:this.blankForm()}); this.nav('dashboard'); } };
+
+  // ---- status workflow ----
+  async changeStatus(id, key){ const sm=this.STATUS[key]; let opts={ icon:'question', title:'เปลี่ยนสถานะเป็น “'+sm.label+'” ?' }; if(key==='ready') opts={ icon:'question', title:'ต้องการเปลี่ยนสถานะเป็น “พร้อมรับยา” ใช่หรือไม่?', text:'หน้าสถานะของผู้ป่วยจะแสดงว่ายาพร้อมรับแล้ว' }; if(key==='picked_up') opts={ icon:'question', title:'ต้องการบันทึกว่าผู้ป่วยรับยาแล้วใช่หรือไม่?' }; if(key==='cancelled') opts={ icon:'warning', title:'ต้องการยกเลิกใบค้างยานี้ใช่หรือไม่?', text:'กรุณาระบุเหตุผลการยกเลิกเพื่อบันทึก audit log', input:'text', inputPlaceholder:'เหตุผลการยกเลิก', confirmButtonColor:'#e11d48', confirmButtonText:'ยกเลิกใบค้าง' }; const r=await this.confirm(opts); if(!r.isConfirmed) return; const reason=key==='cancelled' ? (r.value||'') : ''; if(this.isBackendReady){ try{ this.setState({loading:true}); await this.api.ticketService.updateStatus(id,key,reason); const tickets=await this.api.ticketService.listTickets(); this.setState({tickets, loading:false, activeId:id}); this.toast('อัปเดตสถานะสำเร็จ'); }catch(err){ this.setState({loading:false}); this.error('อัปเดตสถานะไม่สำเร็จ', err); } return; } this.setState(s=>({ tickets: s.tickets.map(t=> t.id===id? Object.assign({}, t, { status:key, updatedAt:Date.now(), cancelReason:reason, items: t.items.map(it=>Object.assign({},it,{status:key})) }) : t) })); this.toast('อัปเดตสถานะสำเร็จ'); }
+
+  // ---- print ----
+  printNow = ()=>{ window.print(); };
+
+  // ---- lookup ----
+  onLookup = async (e)=>{ if(e&&e.preventDefault) e.preventDefault(); const code=this.state.lkCode.trim(); const ph=this.state.lkPhone.trim(); if(!code||!ph){ this.warn('กรอกข้อมูลไม่ครบ','กรุณากรอกเลขใบค้างยาและเบอร์โทร 4 หลักท้าย'); return; } if(this.isBackendReady){ try{ this.setState({loading:true}); const publicTicket=await this.api.ticketService.lookupTicketStatus(code, ph); this.setState({loading:false}); if(!publicTicket){ this.warn('ไม่พบข้อมูลใบค้างยา','กรุณาตรวจสอบเลขใบค้างยาและเบอร์โทรอีกครั้ง'); return; } this.setState({ publicTicket, activeId:null, activeToken:'', route:'public' }); }catch(err){ this.setState({loading:false}); this.error('ค้นหาสถานะไม่สำเร็จ', err); } return; } const t=this.state.tickets.find(x=> (x.no.toLowerCase()===code.toLowerCase() || x.no.slice(-4)===code) && x.phone.slice(-4)===ph); if(!t){ this.warn('ไม่พบข้อมูลใบค้างยา','กรุณาตรวจสอบเลขใบค้างยาและเบอร์โทรอีกครั้ง'); return; } this.setState({ activeId:t.id, publicTicket:null, route:'public' }); };
+  async loadPublicByToken(token, showToast){ try{ this.setState({loading:true}); const publicTicket=await this.api.ticketService.getPublicStatusByToken(token); this.setState({publicTicket, loading:false, route:'public'}); if(!publicTicket) this.warn('ไม่พบข้อมูลใบค้างยา','กรุณาตรวจสอบลิงก์ QR Code อีกครั้ง'); else if(showToast) this.toast('อัปเดตสถานะล่าสุดแล้ว','info'); }catch(err){ this.setState({loading:false}); this.error('โหลดสถานะไม่สำเร็จ', err); } }
+  onRefresh = async ()=>{ if(this.isBackendReady && this.state.activeToken){ await this.loadPublicByToken(this.state.activeToken, true); return; } if(this.isBackendReady && this.state.publicTicket){ const fresh=await this.api.ticketService.lookupTicketStatus(this.state.publicTicket.no, this.state.lkPhone); this.setState({publicTicket:fresh}); this.toast('อัปเดตสถานะล่าสุดแล้ว','info'); return; } this.forceUpdate(); this.toast('อัปเดตสถานะล่าสุดแล้ว','info'); };
+
+  buildActive(){ const t=this.state.publicTicket || this.state.tickets.find(x=>x.id===this.state.activeId); if(!t) return null; const m=this.STATUS[t.status] || this.STATUS.preparing; const items=(t.items||[]).map(it=>{ const im=this.STATUS[it.status||t.status] || m; return { name:it.name, qty:it.qty, unit:it.unit, note:it.note||'-', sLabel:im.label, sText:im.text, sBg:im.bg, sBorder:im.border, dot:im.dot }; }); const timeline=this.statusOrder.map((k,idx)=>{ const tm=this.STATUS[k]; const done = t.status!=='cancelled' && m.step>=tm.step; return { label:tm.label, done, current: t.status===k, dot: done? tm.dot:'#cbd5e1', tcolor: done? '#0f172a':'#94a3b8', notLast: idx<this.statusOrder.length-1 }; }); const url=t.token ? this.api.publicStatusUrl(t.token) : ''; return { id:t.id, no:t.no, hn:t.hn||'-', name:t.publicOnly?'':t.name, phone:t.phone||'-', phoneMask: t.phone==='-'? '-' : ('xxx-xxx-'+String(t.phone||'').slice(-4)), note:t.note||'-', items, itemCount:items.length, statusKey:t.status, sLabel:m.label, sText:m.text, sBg:m.bg, sBorder:m.border, dot:m.dot, sMsg:t.publicMessage||m.msg, createdThai:this.fmtDate(t.createdAt), updatedThai:this.fmtDate(t.updatedAt), updatedRel:this.fmtRel(t.updatedAt), timeline, isCancelled: t.status==='cancelled', qrUrl:url?this.qr(url):null, url, shortUrl: url.replace(/^https?:\/\//,'') }; }
+
+  toView(t){ const m=this.STATUS[t.status]; return { id:t.id, no:t.no, hn:t.hn, name:t.name, itemCount:t.items.length, itemText:t.items.length+' รายการ', statusKey:t.status, sLabel:m.label, dot:m.dot, sText:m.text, sBg:m.bg, sBorder:m.border, createdThai:this.fmtDate(t.createdAt), updatedRel:this.fmtRel(t.updatedAt), onView:()=>this.nav('detail',t.id), onPrint:()=>this.nav('print',t.id) }; }
+
+  renderVals(){
+    const s=this.state; const r=s.route;
+    const isShell = (r==='dashboard'||r==='create'||r==='list'||r==='detail') && s.authed;
+    const cnt=(k)=> s.tickets.filter(t=>t.status===k).length;
+    const statCards=[
+      { key:'all', label:'ใบค้างทั้งหมด', value:s.tickets.length, dot:'#2563eb', bg:'#eff6ff', text:'#1d4ed8', onClick:()=>this.goList('all') },
+      { key:'preparing', label:'กำลังเตรียม', value:cnt('preparing'), dot:'#0ea5e9', bg:'#f0f9ff', text:'#0369a1', onClick:()=>this.goList('preparing') },
+      { key:'ready', label:'พร้อมรับยา', value:cnt('ready'), dot:'#10b981', bg:'#ecfdf5', text:'#047857', onClick:()=>this.goList('ready') },
+      { key:'picked_up', label:'รับยาแล้ว', value:cnt('picked_up'), dot:'#64748b', bg:'#f8fafc', text:'#475569', onClick:()=>this.goList('picked_up') },
+      { key:'cancelled', label:'ยกเลิก', value:cnt('cancelled'), dot:'#f43f5e', bg:'#fff1f2', text:'#be123c', onClick:()=>this.goList('cancelled') },
+    ];
+    const recent = s.tickets.slice().sort((a,b)=>b.updatedAt-a.updatedAt).slice(0,8).map(t=>this.toView(t));
+    const q=s.q.trim().toLowerCase();
+    const filtered = s.tickets.slice().sort((a,b)=>b.createdAt-a.createdAt).filter(t=>{ if(s.statusFilter!=='all' && t.status!==s.statusFilter) return false; if(!q) return true; return (t.no.toLowerCase().indexOf(q)>=0 || t.hn.toLowerCase().indexOf(q)>=0 || t.name.toLowerCase().indexOf(q)>=0); }).map(t=>this.toView(t));
+    const chips=[ {key:'all',label:'ทั้งหมด'},{key:'preparing',label:'กำลังเตรียม'},{key:'ready',label:'พร้อมรับยา'},{key:'picked_up',label:'รับยาแล้ว'},{key:'cancelled',label:'ยกเลิก'} ].map(c=>({ key:c.key, label:c.label, active:s.statusFilter===c.key, onClick:()=>this.setState({statusFilter:c.key}), bg: s.statusFilter===c.key?'#2563eb':'#fff', col: s.statusFilter===c.key?'#fff':'#475569', border: s.statusFilter===c.key?'#2563eb':'#e2e8f0' }));
+    const drugRows = s.form.items.map((it,i)=>({ i, idx:i+1, name:it.name, qty:it.qty, unit:it.unit, note:it.note, canRemove:s.form.items.length>1, onName:e=>this.updDrug(i,'name',e.target.value), onQty:e=>this.updDrug(i,'qty',e.target.value), onUnit:e=>this.updDrug(i,'unit',e.target.value), onNote:e=>this.updDrug(i,'note',e.target.value), onRemove:()=>this.rmDrug(i) }));
+    const A=this.buildActive();
+    const mkBtn=(k)=>{ const sm=this.STATUS[k]; const active=A&&A.statusKey===k; return { key:k, label:sm.label, dot:sm.dot, active, style: (active? ('background:'+sm.bg+'; color:'+sm.text+'; border:1.5px solid '+sm.dot+'; font-weight:700;') : 'background:#fff; color:#475569; border:1px solid #e2e8f0; font-weight:600;')+' display:flex; align-items:center; gap:10px; width:100%; padding:12px 14px; border-radius:12px; font-size:14px; cursor:pointer; text-align:left; transition:.12s;', onClick:()=>{ if(A) this.changeStatus(A.id,k); } }; };
+    const statusBtns=this.staffStatusOrder.map(mkBtn);
+    return {
+      statusBtns,
+      showLogin: r==='login', showLookup: r==='lookup', showPublic: r==='public', showPrint: r==='print',
+      isShell, showDashboard: r==='dashboard', showCreate: r==='create', showList: r==='list', showDetail: r==='detail',
+      showBrandPanel: !s.isMobile, isMobile:s.isMobile, sidebarOpen:s.sidebarOpen,
+      pageTitle: ({dashboard:'ภาพรวมระบบ',create:'สร้างใบค้างยา',list:'รายการใบค้างยา',detail:'รายละเอียดใบค้างยา'}[r])||'',
+      desktopTable: !s.isMobile, mobileCards: s.isMobile, showHamburger: s.isMobile, overlayShow: s.isMobile&&s.sidebarOpen,
+      sidebarStyle: 'width:264px; flex-shrink:0; background:#fff; border-right:1px solid #e7eef7; display:flex; flex-direction:column; z-index:50; '+(s.isMobile? ('position:fixed; top:0; bottom:0; left:0; box-shadow:0 0 50px rgba(15,42,90,.22); transition:transform .25s ease; transform:translateX('+(s.sidebarOpen?'0%':'-110%')+');') : 'position:sticky; top:0; height:100vh;'),
+      navDashBg:r==='dashboard'?'#eff6ff':'transparent', navDashCol:r==='dashboard'?'#1d4ed8':'#475569',
+      navCreateBg:r==='create'?'#eff6ff':'transparent', navCreateCol:r==='create'?'#1d4ed8':'#475569',
+      navListBg:r==='list'?'#eff6ff':'transparent', navListCol:r==='list'?'#1d4ed8':'#475569',
+      user:s.user, todayStr:this.todayThai(),
+      navDash:r==='dashboard', navCreate:r==='create', navList:r==='list',
+      go:(rt)=>this.nav(rt), goDash:()=>this.nav('dashboard'), goCreate:()=>this.nav('create'), goListAll:()=>this.goList('all'), goLookup:()=>this.nav('lookup'), onLogout:this.onLogout,
+      toggleSidebar:()=>this.setState(st=>({sidebarOpen:!st.sidebarOpen})), closeSidebar:()=>this.setState({sidebarOpen:false}),
+      loginEmail:s.loginEmail, onLoginEmail:e=>this.setState({loginEmail:e.target.value}), loginPass:s.loginPass, onLoginPass:e=>this.setState({loginPass:e.target.value}), onLogin:this.onLogin,
+      statCards, recent, recentEmpty: recent.length===0,
+      q:s.q, onQ:e=>this.setState({q:e.target.value}), statusFilter:s.statusFilter, chips, filtered, filteredEmpty: filtered.length===0, hasResults: filtered.length>0, listCount:filtered.length, clearFilters:()=>this.setState({q:'',statusFilter:'all'}),
+      fHn:s.form.hn, onFHn:e=>this.setForm('hn',e.target.value), fName:s.form.name, onFName:e=>this.setForm('name',e.target.value), fPhone:s.form.phone, onFPhone:e=>this.setForm('phone',e.target.value), fNote:s.form.note, onFNote:e=>this.setForm('note',e.target.value), drugRows, onAddDrug:()=>this.addDrug(), onSave:()=>this.onSave(), onCancelCreate:this.onCancelCreate,
+      activeTicket:A, noQr: !(A && A.qrUrl), viewPublic:()=>{ if(A) this.nav('public',A.id); },
+      curPreparing:A&&A.statusKey==='preparing', curReady:A&&A.statusKey==='ready', curPicked:A&&A.statusKey==='picked_up', curCancelled:A&&A.statusKey==='cancelled',
+      dPreparing:()=>A&&this.changeStatus(A.id,'preparing'), dReady:()=>A&&this.changeStatus(A.id,'ready'), dPicked:()=>A&&this.changeStatus(A.id,'picked_up'), dCancel:()=>A&&this.changeStatus(A.id,'cancelled'),
+      onPrintActive:()=>A&&this.nav('print',A.id), backDetail:()=>A&&this.nav('detail',A.id), printNow:this.printNow, qrReady:s.qrReady,
+      lkCode:s.lkCode, onLkCode:e=>this.setState({lkCode:e.target.value}), lkPhone:s.lkPhone, onLkPhone:e=>this.setState({lkPhone:e.target.value}), onLookup:this.onLookup, backLogin:()=>this.nav('login'), onRefresh:this.onRefresh, goLookupPage:()=>this.nav('lookup'),
+    };
+  }
+}
+</script>
+</body>
+</html>

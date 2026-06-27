@@ -1,0 +1,102 @@
+@import "tailwindcss";
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+  margin: 0;
+}
+
+body {
+  font-family: "Noto Sans Thai", system-ui, -apple-system, sans-serif;
+  background: #eef4fb;
+  color: #0f172a;
+  -webkit-font-smoothing: antialiased;
+}
+
+input,
+button,
+select,
+textarea {
+  font-family: inherit;
+}
+
+::placeholder {
+  color: #94a3b8;
+}
+
+button:disabled {
+  cursor: wait;
+  opacity: 0.72;
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.animate-fade-up {
+  animation: fade-up 0.35s ease both;
+}
+
+.animate-fade-up-slow {
+  animation: fade-up 0.45s ease both;
+}
+
+.swal2-popup {
+  border-radius: 20px !important;
+  font-family: "Noto Sans Thai", system-ui, sans-serif !important;
+}
+
+.swal2-title {
+  color: #0f172a !important;
+  font-size: 1.2rem !important;
+}
+
+.swal2-html-container {
+  white-space: pre-line !important;
+  color: #475569 !important;
+}
+
+.swal2-styled {
+  border-radius: 12px !important;
+  box-shadow: none !important;
+  font-weight: 600 !important;
+}
+
+@media print {
+  body {
+    background: #fff !important;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  .print-paper {
+    margin: 0 !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+
+  .print-wrap {
+    min-height: auto !important;
+    padding: 0 !important;
+    background: #fff !important;
+  }
+
+  @page {
+    size: A5;
+    margin: 12mm;
+  }
+}
