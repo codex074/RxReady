@@ -138,14 +138,25 @@ status = "preparing"
 ```sql
 profiles (
   id uuid primary key references auth.users(id),
+  username text unique not null,
   display_name text not null,
-  email text,
   role text not null check (role in ('admin', 'pharmacist', 'staff', 'viewer')),
   is_active boolean not null default true,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 )
 ```
+
+### Authentication
+
+- หน้า login ใช้ `username` และรหัสผ่าน/PIN เท่านั้น ห้ามแสดงหรือร้องขอ email
+- Supabase Auth ยังใช้ email identity ภายในรูปแบบ `{username}@usc-rxready.vercel.app` แต่ห้ามแสดงค่านี้ใน UI
+- ระบบต้องไม่ส่ง email, magic link หรือ OTP
+- ห้ามเปิดหน้า sign-up สาธารณะ เจ้าหน้าที่ใหม่ต้องสร้างโดย admin เท่านั้น
+- trigger สร้าง profile ต้องกำหนด role เริ่มต้นเป็น `viewer` เสมอ และห้ามเชื่อถือ role จาก user metadata
+- การเลื่อนสิทธิ์เป็น `admin`, `pharmacist` หรือ `staff` ต้องทำผ่าน admin workflow หรือ SQL ที่ได้รับอนุญาต
+- ห้าม hardcode หรือ commit username/password/PIN จริงลง source code, migration, `.env.example` หรือเอกสารใน repository
+- รหัส PIN สั้นมีความเสี่ยงต่อ brute force; production ต้องจำกัดอัตราการ login และเปลี่ยนเป็นรหัสผ่านอย่างน้อย 8 ตัวเมื่อทำได้
 
 ### 2. backorder_tickets
 
@@ -498,4 +509,3 @@ with check (true)
 - วิธี deploy
 - วิธีทดสอบ flow หลัก
 - จุดที่ยังต้องให้ผู้ใช้เติมเอง เช่น Supabase URL/Anon Key
-

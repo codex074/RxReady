@@ -1,20 +1,20 @@
 import type { FormEvent } from 'react';
 
 type LoginPageProps = {
-  email: string;
+  username: string;
   password: string;
   loading: boolean;
-  onEmailChange: (value: string) => void;
+  onUsernameChange: (value: string) => void;
   onPasswordChange: (value: string) => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
   onLookup: () => void;
 };
 
 export function LoginPage({
-  email,
+  username,
   password,
   loading,
-  onEmailChange,
+  onUsernameChange,
   onPasswordChange,
   onSubmit,
   onLookup,
@@ -54,15 +54,15 @@ export function LoginPage({
             <p className="text-[14px] text-[#64748b]">เข้าสู่ระบบสำหรับเจ้าหน้าที่ห้องยา</p>
           </div>
           <form onSubmit={onSubmit} className="rounded-[20px] border border-[#e2e8f0] bg-white p-[28px] shadow-[0_18px_40px_-24px_rgba(15,42,90,.45)]">
-            <label className="mb-[7px] block text-[13.5px] font-semibold text-[#334155]">อีเมล</label>
+            <label className="mb-[7px] block text-[13.5px] font-semibold text-[#334155]">ชื่อผู้ใช้</label>
             <div className="relative mb-[18px]">
               <span className="absolute left-[14px] top-1/2 -translate-y-1/2 text-[15px] text-[#94a3b8]">✉</span>
-              <input type="email" value={email} onChange={(event) => onEmailChange(event.target.value)} placeholder="name@usc.go.th" className="w-full rounded-[12px] border border-[#cbd5e1] py-[13px] pl-[40px] pr-[14px] text-[14.5px] text-[#0f172a] outline-none transition focus:border-[#2563eb] focus:shadow-[0_0_0_3px_rgba(37,99,235,.16)]" />
+              <input type="text" autoComplete="username" value={username} onChange={(event) => onUsernameChange(event.target.value)} placeholder="admin" className="w-full rounded-[12px] border border-[#cbd5e1] py-[13px] pl-[40px] pr-[14px] text-[14.5px] text-[#0f172a] outline-none transition focus:border-[#2563eb] focus:shadow-[0_0_0_3px_rgba(37,99,235,.16)]" />
             </div>
             <label className="mb-[7px] block text-[13.5px] font-semibold text-[#334155]">รหัสผ่าน</label>
             <div className="relative mb-[24px]">
               <span className="absolute left-[14px] top-1/2 -translate-y-1/2 text-[15px] text-[#94a3b8]">🔒</span>
-              <input type="password" value={password} onChange={(event) => onPasswordChange(event.target.value)} placeholder="••••••••" className="w-full rounded-[12px] border border-[#cbd5e1] py-[13px] pl-[40px] pr-[14px] text-[14.5px] text-[#0f172a] outline-none transition focus:border-[#2563eb] focus:shadow-[0_0_0_3px_rgba(37,99,235,.16)]" />
+              <input type="password" autoComplete="current-password" inputMode="numeric" value={password} onChange={(event) => onPasswordChange(event.target.value)} placeholder="••••••••" className="w-full rounded-[12px] border border-[#cbd5e1] py-[13px] pl-[40px] pr-[14px] text-[14.5px] text-[#0f172a] outline-none transition focus:border-[#2563eb] focus:shadow-[0_0_0_3px_rgba(37,99,235,.16)]" />
             </div>
             <button type="submit" disabled={loading} className="w-full cursor-pointer rounded-[12px] border-0 bg-[#2563eb] p-[14px] text-[15px] font-bold text-white transition hover:bg-[#1d4ed8]">{loading ? 'กำลังเข้าสู่ระบบ...' : 'เข้าสู่ระบบ'}</button>
           </form>

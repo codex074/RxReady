@@ -6,7 +6,7 @@ export type StaffUser = {
   id?: string;
   name: string;
   role: StaffRole | string;
-  email?: string;
+  username?: string;
 };
 
 export type BackorderItemInput = {

@@ -31,7 +31,7 @@ import { publicStatusUrl, qrDataUrl, tokenFromLocation } from './utils/qr';
 const demoUser: StaffUser = {
   name: 'ภก. ศิริพร วงศ์ทอง',
   role: 'pharmacist',
-  email: 'pharmacist@usc.go.th',
+  username: 'pharmacist',
 };
 
 function newFormItem() {
@@ -78,7 +78,7 @@ export function App() {
   const [publicStatus, setPublicStatus] = useState<Ticket | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [loading, setLoading] = useState(isSupabaseConfigured);
-  const [loginEmail, setLoginEmail] = useState(isSupabaseConfigured ? '' : 'pharmacist@usc.go.th');
+  const [loginUsername, setLoginUsername] = useState(isSupabaseConfigured ? '' : 'admin');
   const [loginPassword, setLoginPassword] = useState(isSupabaseConfigured ? '' : 'demo1234');
   const [query, setQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<TicketStatus | 'all'>('all');
@@ -180,8 +180,8 @@ export function App() {
 
   async function handleLogin(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!loginEmail.trim() || !loginPassword.trim()) {
-      await showError('เข้าสู่ระบบไม่สำเร็จ', 'กรุณากรอกอีเมลและรหัสผ่านให้ครบถ้วน');
+    if (!loginUsername.trim() || !loginPassword.trim()) {
+      await showError('เข้าสู่ระบบไม่สำเร็จ', 'กรุณากรอกชื่อผู้ใช้และรหัสผ่านให้ครบถ้วน');
       return;
     }
     if (!isSupabaseConfigured) {
@@ -192,7 +192,7 @@ export function App() {
     }
     try {
       setLoading(true);
-      const currentUser = await signIn(loginEmail.trim(), loginPassword);
+      const currentUser = await signIn(loginUsername, loginPassword);
       const data = await listTickets();
       setUser(currentUser);
       setTickets(data);
@@ -504,7 +504,7 @@ export function App() {
   }
 
   if (route === 'login') {
-    return <LoginPage email={loginEmail} password={loginPassword} loading={loading} onEmailChange={setLoginEmail} onPasswordChange={setLoginPassword} onSubmit={handleLogin} onLookup={() => navigate('lookup')} />;
+    return <LoginPage username={loginUsername} password={loginPassword} loading={loading} onUsernameChange={setLoginUsername} onPasswordChange={setLoginPassword} onSubmit={handleLogin} onLookup={() => navigate('lookup')} />;
   }
 
   if (route === 'lookup') {
@@ -520,7 +520,7 @@ export function App() {
   }
 
   if (!authed) {
-    return <LoginPage email={loginEmail} password={loginPassword} loading={loading} onEmailChange={setLoginEmail} onPasswordChange={setLoginPassword} onSubmit={handleLogin} onLookup={() => navigate('lookup')} />;
+    return <LoginPage username={loginUsername} password={loginPassword} loading={loading} onUsernameChange={setLoginUsername} onPasswordChange={setLoginPassword} onSubmit={handleLogin} onLookup={() => navigate('lookup')} />;
   }
 
   return (
