@@ -1,4 +1,5 @@
 import type { FormEvent } from 'react';
+import { mophLogo, uscLogo, utthLogo } from '../uiAssets';
 
 type LoginPageProps = {
   username: string;
@@ -26,7 +27,7 @@ export function LoginPage({
         <div className="absolute bottom-[40px] left-[-90px] h-[240px] w-[240px] rounded-full bg-[rgba(255,255,255,.05)]" />
         <div className="relative">
           <div className="inline-flex rounded-[16px] bg-white px-[20px] py-[14px] shadow-[0_10px_30px_rgba(0,0,0,.18)]">
-            <img src="/assets/usc-logo.png" alt="USC+" className="block h-[52px]" />
+            <img src={uscLogo} alt="USC+" className="block h-[52px]" />
           </div>
         </div>
         <div className="relative max-w-[420px]">
@@ -40,8 +41,8 @@ export function LoginPage({
           </div>
         </div>
         <div className="relative flex items-center gap-[14px] pt-[8px]">
-          <div className="flex h-[46px] w-[46px] items-center justify-center rounded-[12px] bg-white"><img src="/assets/utth-logo.png" alt="รพ.อุตรดิตถ์" className="h-[36px]" /></div>
-          <div className="flex h-[46px] w-[46px] items-center justify-center rounded-[12px] bg-white"><img src="/assets/moph-logo.png" alt="สธ." className="h-[36px]" /></div>
+          <div className="flex h-[46px] w-[46px] items-center justify-center rounded-[12px] bg-white"><img src={utthLogo} alt="รพ.อุตรดิตถ์" className="h-[36px]" /></div>
+          <div className="flex h-[46px] w-[46px] items-center justify-center rounded-[12px] bg-white"><img src={mophLogo} alt="สธ." className="h-[36px]" /></div>
           <div className="text-[12.5px] leading-[1.5] text-[#cfe0f8]">โรงพยาบาลอุตรดิตถ์<br />กระทรวงสาธารณสุข</div>
         </div>
       </div>
@@ -49,7 +50,7 @@ export function LoginPage({
       <div className="flex flex-[1_1_440px] items-center justify-center px-[24px] py-[40px]">
         <div className="animate-fade-up w-full max-w-[400px]">
           <div className="mb-[28px] text-center">
-            <img src="/assets/usc-logo.png" alt="USC+" className="mb-[18px] h-[50px]" />
+            <img src={uscLogo} alt="USC+" className="mb-[18px] h-[50px]" />
             <h2 className="mb-[6px] text-[24px] font-bold text-[#0f172a]">ระบบใบค้างยาออนไลน์</h2>
             <p className="text-[14px] text-[#64748b]">เข้าสู่ระบบสำหรับเจ้าหน้าที่ห้องยา</p>
           </div>

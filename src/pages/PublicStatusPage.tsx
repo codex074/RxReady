@@ -1,4 +1,5 @@
 import type { Ticket } from '../types/backorder';
+import { uscLogo } from '../uiAssets';
 import { formatThaiDate } from '../utils/format';
 import { STATUSES } from '../utils/status';
 import { Icon } from '../components/Icon';
@@ -19,7 +20,7 @@ export function PublicStatusPage({
   if (!ticket) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center bg-[linear-gradient(180deg,#eef4fb_0%,#dbe9fb_100%)] px-[18px] py-[36px]">
-        <img src="/assets/usc-logo.png" alt="USC+" className="mb-[22px] h-[42px]" />
+        <img src={uscLogo} alt="USC+" className="mb-[22px] h-[42px]" />
         <div className="w-full max-w-[460px] rounded-[22px] border border-[#e2e8f0] bg-white px-[24px] py-[36px] text-center shadow-[0_20px_46px_-28px_rgba(15,42,90,.45)]">
           <h1 className="mb-[8px] text-[22px] font-bold text-[#0f172a]">{loading ? 'กำลังตรวจสอบสถานะ...' : 'ไม่พบข้อมูลใบค้างยา'}</h1>
           <p className="text-[14px] text-[#64748b]">กรุณาตรวจสอบลิงก์ QR Code หรือค้นหาด้วยเลขใบค้างยาอีกครั้ง</p>
@@ -33,7 +34,7 @@ export function PublicStatusPage({
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-[linear-gradient(180deg,#eef4fb_0%,#dbe9fb_100%)] px-[18px] py-[36px]">
       <div className="animate-fade-up mb-[22px] flex flex-col items-center gap-[8px]">
-        <img src="/assets/usc-logo.png" alt="USC+" className="h-[42px]" />
+        <img src={uscLogo} alt="USC+" className="h-[42px]" />
         <div className="text-[12.5px] text-[#64748b]">ระบบตรวจสอบสถานะยาออนไลน์</div>
       </div>
       <div className="animate-fade-up-slow w-full max-w-[460px] rounded-[22px] border border-[#e2e8f0] bg-white px-[24px] pb-[28px] pt-[26px] shadow-[0_20px_46px_-28px_rgba(15,42,90,.45)]">

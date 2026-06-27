@@ -1,5 +1,6 @@
 import type { FormEvent } from 'react';
 import { Icon } from '../components/Icon';
+import { uscLogo } from '../uiAssets';
 
 type LookupPageProps = {
   ticketNo: string;
@@ -23,7 +24,7 @@ export function LookupPage({
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-[linear-gradient(180deg,#eef4fb_0%,#dbe9fb_100%)] px-[18px] py-[36px]">
       <div className="animate-fade-up mb-[24px] flex flex-col items-center gap-[8px]">
-        <img src="/assets/usc-logo.png" alt="USC+" className="h-[46px]" />
+        <img src={uscLogo} alt="USC+" className="h-[46px]" />
         <div className="text-center text-[13px] text-[#64748b]">ศูนย์การแพทย์เฉพาะทางและตรวจสุขภาพ อุตรดิตถ์</div>
       </div>
       <div className="animate-fade-up-slow w-full max-w-[440px] rounded-[22px] border border-[#e2e8f0] bg-white px-[28px] py-[30px] shadow-[0_20px_46px_-28px_rgba(15,42,90,.45)]">

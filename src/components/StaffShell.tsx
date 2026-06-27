@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import type { StaffUser } from '../types/backorder';
 import type { AppRoute } from '../types/navigation';
+import { uscLogo } from '../uiAssets';
 import { todayThai } from '../utils/format';
 import { Icon } from './Icon';
 
@@ -55,7 +56,7 @@ export function StaffShell({
         }`}
       >
         <div className="flex items-center gap-[11px] border-b border-[#eef2f7] px-[18px] pb-[16px] pt-[18px]">
-          <img src="/assets/usc-logo.png" alt="USC+" className="h-[30px]" />
+          <img src={uscLogo} alt="USC+" className="h-[30px]" />
           <div className="leading-[1.2]">
             <div className="text-[14.5px] font-bold text-[#0f172a]">ระบบใบค้างยา</div>
             <div className="text-[11.5px] text-[#94a3b8]">USC+ · ห้องยา</div>

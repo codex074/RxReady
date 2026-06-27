@@ -1,4 +1,5 @@
 import type { Ticket } from '../types/backorder';
+import { uscLogo } from '../uiAssets';
 import { formatThaiDate } from '../utils/format';
 import { publicStatusUrl } from '../utils/qr';
 import { Icon } from '../components/Icon';
@@ -21,7 +22,7 @@ export function PrintPage({ ticket, qrUrl, onBack, onPublicView }: PrintPageProp
 
       <div className="print-paper w-full max-w-[400px] rounded-[14px] border border-[#e2e8f0] bg-white px-[24px] py-[26px] shadow-[0_14px_36px_-20px_rgba(15,42,90,.45)]">
         <div className="flex items-center gap-[11px] border-b-2 border-dashed border-[#e2e8f0] pb-[15px]">
-          <img src="/assets/usc-logo.png" alt="USC+" className="h-[38px]" />
+          <img src={uscLogo} alt="USC+" className="h-[38px]" />
           <div className="leading-[1.25]"><div className="text-[15px] font-bold text-[#0f172a]">ใบค้างยา</div><div className="text-[11px] text-[#64748b]">ห้องยา USC+ · รพ.อุตรดิตถ์</div></div>
           <div className="ml-auto text-right"><div className="text-[10.5px] text-[#94a3b8]">เลขที่</div><div className="text-[14px] font-bold tabular-nums text-[#1d4ed8]">{ticket.no}</div></div>
         </div>
