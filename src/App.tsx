@@ -12,6 +12,7 @@ import { LookupPage } from './pages/LookupPage';
 import { PublicStatusPage } from './pages/PublicStatusPage';
 import { PrintPage } from './pages/PrintPage';
 import { UserManagementPage } from './pages/UserManagementPage';
+import { DrugManagementPage } from './pages/DrugManagementPage';
 import { getCurrentUser, signIn, signOut } from './services/authService';
 import {
   createTicket,
@@ -27,12 +28,19 @@ import {
   setManagedUserActive,
   updateManagedUser,
 } from './services/userService';
+import {
+  listDrugs,
+  createDrug,
+  updateDrug,
+  deleteDrug,
+} from './services/drugService';
 import type {
   StaffUser,
   Ticket,
   TicketForm,
   TicketStatus,
 } from './types/backorder';
+import type { Drug, CreateDrugInput, UpdateDrugInput } from './types/drug';
 import type { AppRoute } from './types/navigation';
 import type {
   CreateManagedUserInput,
@@ -93,12 +101,14 @@ export function App() {
   const [loading, setLoading] = useState(isSupabaseConfigured);
   const [usersLoading, setUsersLoading] = useState(false);
   const [managedUsers, setManagedUsers] = useState<ManagedUser[]>([]);
+  const [drugsLoading, setDrugsLoading] = useState(false);
+  const [drugs, setDrugs] = useState<Drug[]>([]);
   const [loginUsername, setLoginUsername] = useState(isSupabaseConfigured ? '' : 'admin');
   const [loginPassword, setLoginPassword] = useState(isSupabaseConfigured ? '' : 'demo1234');
   const [query, setQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<TicketStatus | 'all'>('all');
   const [form, setForm] = useState<TicketForm>(blankForm);
-  const [lookupNo, setLookupNo] = useState('BO-20260627-0049');
+  const [lookupNo, setLookupNo] = useState('USC-20260627-0001');
   const [lookupPhone, setLookupPhone] = useState('4567');
   const [qrUrl, setQrUrl] = useState('');
 
@@ -176,12 +186,13 @@ export function App() {
   }, [route, activeTicket?.token]);
 
   function navigate(nextRoute: AppRoute, ticketId?: string) {
-    if (nextRoute === 'users') {
+    if (nextRoute === 'users' || nextRoute === 'drugs') {
       if (user.role !== 'admin') {
         void showError('ไม่มีสิทธิ์เข้าถึง', 'เฉพาะผู้ดูแลระบบเท่านั้น');
         return;
       }
-      void loadUsers();
+      if (nextRoute === 'users') void loadUsers();
+      if (nextRoute === 'drugs') void loadDrugs();
     }
     if (ticketId) setActiveId(ticketId);
     setSidebarOpen(false);
@@ -209,6 +220,59 @@ export function App() {
       await showError('โหลดข้อมูลผู้ใช้ไม่สำเร็จ', error);
     } finally {
       setUsersLoading(false);
+    }
+  }
+
+  async function loadDrugs(): Promise<void> {
+    if (!isSupabaseConfigured || user.role !== 'admin') return;
+    try {
+      setDrugsLoading(true);
+      setDrugs(await listDrugs());
+    } catch (error) {
+      await showError('โหลดรายการยาไม่สำเร็จ', error);
+    } finally {
+      setDrugsLoading(false);
+    }
+  }
+
+  async function handleCreateDrug(input: CreateDrugInput): Promise<void> {
+    try {
+      const created = await createDrug(input);
+      setDrugs((current) => [created, ...current].sort((a, b) => a.name.localeCompare(b.name, 'th')));
+      showToast('เพิ่มรายการยาสำเร็จ');
+    } catch (error) {
+      await showError('เพิ่มรายการยาไม่สำเร็จ', error);
+    }
+  }
+
+  async function handleUpdateDrug(id: string, input: UpdateDrugInput): Promise<void> {
+    try {
+      const updated = await updateDrug(id, input);
+      setDrugs((current) => current.map((d) => d.id === id ? updated : d));
+    } catch (error) {
+      await showError('แก้ไขรายการยาไม่สำเร็จ', error);
+    }
+  }
+
+  async function handleDeleteDrug(drug: Drug): Promise<void> {
+    const result = await Swal.fire({
+      icon: 'warning',
+      title: `ลบ "${drug.name}"?`,
+      text: 'การลบไม่สามารถยกเลิกได้',
+      showCancelButton: true,
+      confirmButtonText: 'ลบ',
+      cancelButtonText: 'ยกเลิก',
+      confirmButtonColor: '#e11d48',
+      cancelButtonColor: '#94a3b8',
+      reverseButtons: true,
+    });
+    if (!result.isConfirmed) return;
+    try {
+      await deleteDrug(drug.id);
+      setDrugs((current) => current.filter((d) => d.id !== drug.id));
+      showToast('ลบรายการยาสำเร็จ');
+    } catch (error) {
+      await showError('ลบรายการยาไม่สำเร็จ', error);
     }
   }
 
@@ -455,7 +519,7 @@ export function App() {
           Math.max(...tickets.map((ticket) => Number(ticket.no.slice(-4)))) + 1,
         ).padStart(4, '0');
         const date = new Date();
-        ticketNo = `BO-${date.getFullYear()}${String(date.getMonth() + 1).padStart(2, '0')}${String(date.getDate()).padStart(2, '0')}-${next}`;
+        ticketNo = `USC-${date.getFullYear()}${String(date.getMonth() + 1).padStart(2, '0')}${String(date.getDate()).padStart(2, '0')}-${next}`;
         createdId = crypto.randomUUID();
         const timestamp = Date.now();
         const ticket: Ticket = {
@@ -664,12 +728,16 @@ export function App() {
       {route === 'list' && <TicketListPage tickets={tickets} query={query} statusFilter={statusFilter} onQueryChange={setQuery} onStatusChange={setStatusFilter} onCreate={() => navigate('create')} onView={(id) => navigate('detail', id)} onPrint={(id) => navigate('print', id)} />}
       {route === 'detail' && activeTicket && <TicketDetailPage ticket={activeTicket} loading={loading} onBack={() => navigate('list')} onPrint={() => navigate('print', activeTicket.id)} onStatusChange={(status) => void handleStatusChange(status)} />}
       {route === 'users' && user.role === 'admin' && <UserManagementPage users={managedUsers} loading={usersLoading} currentUserId={user.id} onRefresh={loadUsers} onCreate={handleCreateUser} onUpdate={handleUpdateUser} onToggleActive={(managedUser) => void handleToggleUserActive(managedUser)} onResetPassword={(managedUser) => void handleResetUserPassword(managedUser)} />}
+      {route === 'drugs' && user.role === 'admin' && <DrugManagementPage drugs={drugs} loading={drugsLoading} onRefresh={() => void loadDrugs()} onCreate={handleCreateDrug} onUpdate={handleUpdateDrug} onDelete={(drug) => void handleDeleteDrug(drug)} />}
     </StaffShell>
   );
 }
 
 function errorMessage(error: unknown): string {
   if (error instanceof Error) return error.message;
+  if (error && typeof error === 'object' && 'message' in error && typeof (error as { message: unknown }).message === 'string') {
+    return (error as { message: string }).message;
+  }
   return String(error || 'เกิดข้อผิดพลาด');
 }
 

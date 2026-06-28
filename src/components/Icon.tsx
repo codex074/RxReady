@@ -12,7 +12,11 @@ type IconName =
   | 'save'
   | 'trash'
   | 'clock'
-  | 'refresh';
+  | 'refresh'
+  | 'pill'
+  | 'edit'
+  | 'check'
+  | 'x';
 
 type IconProps = {
   name: IconName;
@@ -73,6 +77,18 @@ export function Icon({ name, size = 19, strokeWidth = 2, className }: IconProps)
   }
   if (name === 'clock') {
     return <svg {...common}><circle cx="12" cy="12" r="9" /><polyline points="12 7 12 12 15 14" /></svg>;
+  }
+  if (name === 'pill') {
+    return <svg {...common}><path d="M10.5 20.5 3.5 13.5a5 5 0 0 1 7.07-7.07l7 7a5 5 0 0 1-7.07 7.07z" /><line x1="8.5" y1="8.5" x2="15.5" y2="15.5" /></svg>;
+  }
+  if (name === 'edit') {
+    return <svg {...common}><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>;
+  }
+  if (name === 'check') {
+    return <svg {...common}><polyline points="20 6 9 17 4 12" /></svg>;
+  }
+  if (name === 'x') {
+    return <svg {...common}><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>;
   }
   return <svg {...common}><polyline points="23 4 23 10 17 10" /><path d="M20.5 15a9 9 0 1 1-2.1-9.4L23 10" /></svg>;
 }

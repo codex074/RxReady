@@ -5,6 +5,7 @@ export type AppRoute =
   | 'list'
   | 'detail'
   | 'users'
+  | 'drugs'
   | 'print'
   | 'lookup'
   | 'public';

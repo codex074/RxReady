@@ -9,3 +9,5 @@ dist/
 .vite/
 coverage/
 supabase/.temp/
+assets/*.xlsx
+assets/*.xls

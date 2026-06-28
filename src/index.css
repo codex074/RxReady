@@ -95,8 +95,13 @@ button:disabled {
     background: #fff !important;
   }
 
+  .print-paper {
+    max-width: 100% !important;
+    border-radius: 0 !important;
+  }
+
   @page {
-    size: A5;
-    margin: 12mm;
+    size: A4;
+    margin: 14mm;
   }
 }
