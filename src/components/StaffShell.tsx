@@ -14,22 +14,23 @@ type StaffShellProps = {
   onToggleSidebar: () => void;
   onCloseSidebar: () => void;
   onLogout: () => void;
+  onEditProfile: () => void;
 };
 
 const pageTitles: Partial<Record<AppRoute, string>> = {
   dashboard: 'ภาพรวมระบบ',
   create: 'สร้างใบค้างยา',
   list: 'รายการใบค้างยา',
+  outstanding: 'ยาค้างคนไข้',
   detail: 'รายละเอียดใบค้างยา',
   users: 'จัดการผู้ใช้',
   drugs: 'จัดการรายการยา',
 };
 
 const roleLabels: Record<string, string> = {
-  admin: 'ผู้ดูแลระบบ',
-  pharmacist: 'เภสัชกรห้องยา',
-  staff: 'เจ้าหน้าที่ห้องยา',
-  viewer: 'ผู้ดูข้อมูล',
+  admin: 'Admin',
+  'sub-admin': 'Sub-Admin',
+  staff: 'Staff',
 };
 
 export function StaffShell({
@@ -41,6 +42,7 @@ export function StaffShell({
   onToggleSidebar,
   onCloseSidebar,
   onLogout,
+  onEditProfile,
 }: StaffShellProps) {
   return (
     <div className="flex min-h-screen items-stretch">
@@ -70,22 +72,27 @@ export function StaffShell({
           <NavButton active={route === 'dashboard'} icon="dashboard" label="หน้าหลัก" onClick={() => onNavigate('dashboard')} />
           <NavButton active={route === 'create'} icon="plus-circle" label="สร้างใบค้างยา" onClick={() => onNavigate('create')} />
           <NavButton active={route === 'list'} icon="list" label="รายการใบค้างยา" onClick={() => onNavigate('list')} />
+          <NavButton active={route === 'outstanding'} icon="pill" label="ยาค้างคนไข้" onClick={() => onNavigate('outstanding')} />
           {user.role === 'admin' && <NavButton active={route === 'users'} icon="users" label="จัดการผู้ใช้" onClick={() => onNavigate('users')} />}
-          {user.role === 'admin' && <NavButton active={route === 'drugs'} icon="pill" label="จัดการรายการยา" onClick={() => onNavigate('drugs')} />}
+          {(user.role === 'admin' || user.role === 'sub-admin') && <NavButton active={route === 'drugs'} icon="pill" label="จัดการรายการยา" onClick={() => onNavigate('drugs')} />}
           <div className="px-[12px] pb-[8px] pt-[18px] text-[11px] font-bold tracking-[.08em] text-[#b6c2d2]">สำหรับผู้ป่วย</div>
           <NavButton active={false} icon="search" label="ค้นหาสถานะยา" onClick={() => onNavigate('lookup')} />
         </nav>
 
         <div className="border-t border-[#eef2f7] p-[14px]">
-          <div className="flex items-center gap-[11px] px-[6px] pb-[12px] pt-[8px]">
-            <span className="inline-flex h-[38px] w-[38px] items-center justify-center rounded-full bg-[#e0ecfd] text-[#1d4ed8]">
+          <button
+            onClick={onEditProfile}
+            className="flex w-full cursor-pointer items-center gap-[11px] rounded-[10px] border-0 bg-transparent px-[6px] pb-[12px] pt-[8px] text-left hover:bg-[#f8fafc]"
+          >
+            <span className="inline-flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-full bg-[#e0ecfd] text-[#1d4ed8]">
               <Icon name="user" size={20} />
             </span>
-            <div className="min-w-0 leading-[1.25]">
+            <div className="min-w-0 flex-1 leading-[1.25]">
               <div className="overflow-hidden text-ellipsis whitespace-nowrap text-[13.5px] font-bold text-[#0f172a]">{user.name}</div>
               <div className="text-[11.5px] text-[#94a3b8]">{roleLabels[user.role] || user.role}</div>
             </div>
-          </div>
+            <Icon name="edit" size={14} className="shrink-0 text-[#94a3b8]" />
+          </button>
           <button onClick={onLogout} className="flex w-full cursor-pointer items-center justify-center gap-[9px] rounded-[11px] border border-[#e7eef7] bg-white p-[10px] text-[13.5px] font-semibold text-[#be123c] hover:border-[#fecdd3] hover:bg-[#fff1f2]">
             <Icon name="logout" size={17} />
             ออกจากระบบ
@@ -112,7 +119,7 @@ export function StaffShell({
           </div>
         </header>
 
-        <main className="mx-auto w-full max-w-[1180px] flex-1 p-[clamp(16px,3vw,30px)]">{children}</main>
+        <main className="w-full flex-1 p-[clamp(16px,3vw,30px)]">{children}</main>
       </div>
     </div>
   );

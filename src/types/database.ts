@@ -3,8 +3,10 @@ import type { TicketStatus } from './backorder';
 export type ProfileRow = {
   id: string;
   username: string;
-  display_name: string;
-  role: 'admin' | 'pharmacist' | 'staff' | 'viewer';
+  prefix: string;
+  f_name: string;
+  l_name: string;
+  role: 'admin' | 'sub-admin' | 'staff';
   is_active: boolean;
   created_at: string;
   updated_at: string;

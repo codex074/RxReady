@@ -6,27 +6,34 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
-const roles = ['admin', 'pharmacist', 'staff', 'viewer'] as const;
+const roles = ['admin', 'sub-admin', 'staff'] as const;
 type StaffRole = (typeof roles)[number];
+
+const PROFILE_COLUMNS = 'id, username, prefix, f_name, l_name, role, is_active, created_at, updated_at';
 
 type RequestBody =
   | { action: 'list' }
   | {
       action: 'create';
       username: string;
-      displayName: string;
+      prefix: string;
+      firstName: string;
+      lastName: string;
       password: string;
       role: StaffRole;
     }
   | {
       action: 'update';
       userId: string;
-      displayName: string;
+      prefix: string;
+      firstName: string;
+      lastName: string;
       role: StaffRole;
       isActive: boolean;
     }
   | { action: 'set_active'; userId: string; isActive: boolean }
-  | { action: 'reset_password'; userId: string; password: string };
+  | { action: 'reset_password'; userId: string; password: string }
+  | { action: 'update_self'; prefix: string; firstName: string; lastName: string };
 
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -47,6 +54,19 @@ function validatePassword(value: string) {
   if (value.length < 4 || value.length > 64) {
     throw new Error('รหัสผ่านต้องมี 4-64 ตัว');
   }
+}
+
+function nameParts(body: { prefix?: string; firstName?: string; lastName?: string }) {
+  const prefix = (body.prefix || '').trim();
+  const firstName = (body.firstName || '').trim();
+  const lastName = (body.lastName || '').trim();
+  if (!firstName) throw new Error('กรุณากรอกชื่อ');
+  return { prefix, firstName, lastName };
+}
+
+function composeName(prefix: string, firstName: string, lastName: string) {
+  const name = [firstName, lastName].filter(Boolean).join(' ');
+  return `${prefix}${name}`.trim();
 }
 
 function validateRole(value: string): asserts value is StaffRole {
@@ -82,12 +102,8 @@ Deno.serve(async (request) => {
       .select('id, role, is_active')
       .eq('id', authResult.data.user.id)
       .single();
-    if (
-      callerResult.error ||
-      callerResult.data?.role !== 'admin' ||
-      callerResult.data?.is_active !== true
-    ) {
-      return json({ error: 'ไม่มีสิทธิ์จัดการผู้ใช้' }, 403);
+    if (callerResult.error || !callerResult.data?.is_active) {
+      return json({ error: 'ไม่มีสิทธิ์เข้าถึง' }, 403);
     }
 
     const body = (await request.json()) as RequestBody;
@@ -103,10 +119,27 @@ Deno.serve(async (request) => {
       });
     }
 
+    if (body.action === 'update_self') {
+      const { prefix, firstName, lastName } = nameParts(body);
+      const updateResult = await adminClient
+        .from('profiles')
+        .update({ prefix, f_name: firstName, l_name: lastName })
+        .eq('id', callerId)
+        .select(PROFILE_COLUMNS)
+        .single();
+      if (updateResult.error) throw updateResult.error;
+      await auditLog('self_update_profile', { name: composeName(prefix, firstName, lastName) });
+      return json({ user: updateResult.data });
+    }
+
+    if (callerResult.data.role !== 'admin') {
+      return json({ error: 'ไม่มีสิทธิ์จัดการผู้ใช้' }, 403);
+    }
+
     if (body.action === 'list') {
       const result = await adminClient
         .from('profiles')
-        .select('id, username, display_name, role, is_active, created_at, updated_at')
+        .select(PROFILE_COLUMNS)
         .order('created_at', { ascending: true });
       if (result.error) throw result.error;
       return json({ users: result.data });
@@ -114,8 +147,7 @@ Deno.serve(async (request) => {
 
     if (body.action === 'create') {
       const username = normalizeUsername(body.username);
-      const displayName = body.displayName.trim();
-      if (!displayName) throw new Error('กรุณากรอกชื่อที่แสดง');
+      const { prefix, firstName, lastName } = nameParts(body);
       validatePassword(body.password);
       validateRole(body.role);
 
@@ -131,7 +163,7 @@ Deno.serve(async (request) => {
         email: `${username}@usc-rxready.vercel.app`,
         password: `RxReady#${body.password}`,
         email_confirm: true,
-        user_metadata: { username, display_name: displayName },
+        user_metadata: { username, prefix, f_name: firstName, l_name: lastName },
       });
       if (authCreate.error || !authCreate.data.user) {
         throw authCreate.error || new Error('สร้างบัญชีไม่สำเร็จ');
@@ -140,22 +172,23 @@ Deno.serve(async (request) => {
       const profileResult = await adminClient.from('profiles').upsert({
         id: authCreate.data.user.id,
         username,
-        display_name: displayName,
+        prefix,
+        f_name: firstName,
+        l_name: lastName,
         role: body.role,
         is_active: true,
-      }).select('id, username, display_name, role, is_active, created_at, updated_at').single();
+      }).select(PROFILE_COLUMNS).single();
 
       if (profileResult.error) {
         await adminClient.auth.admin.deleteUser(authCreate.data.user.id);
         throw profileResult.error;
       }
-      await auditLog('admin_create_user', { targetUserId: authCreate.data.user.id, username, displayName, role: body.role });
+      await auditLog('admin_create_user', { targetUserId: authCreate.data.user.id, username, name: composeName(prefix, firstName, lastName), role: body.role });
       return json({ user: profileResult.data }, 201);
     }
 
     if (body.action === 'update') {
-      const displayName = body.displayName.trim();
-      if (!displayName) throw new Error('กรุณากรอกชื่อที่แสดง');
+      const { prefix, firstName, lastName } = nameParts(body);
       validateRole(body.role);
 
       const targetResult = await adminClient
@@ -187,18 +220,20 @@ Deno.serve(async (request) => {
       const updateResult = await adminClient
         .from('profiles')
         .update({
-          display_name: displayName,
+          prefix,
+          f_name: firstName,
+          l_name: lastName,
           role: body.role,
           is_active: body.isActive,
         })
         .eq('id', body.userId)
-        .select('id, username, display_name, role, is_active, created_at, updated_at')
+        .select(PROFILE_COLUMNS)
         .single();
       if (updateResult.error) throw updateResult.error;
       await auditLog('admin_update_user', {
         targetUserId: body.userId,
         username: targetResult.data.username,
-        displayName,
+        name: composeName(prefix, firstName, lastName),
         role: body.role,
         isActive: body.isActive,
         prevRole: targetResult.data.role,
@@ -236,7 +271,7 @@ Deno.serve(async (request) => {
         .from('profiles')
         .update({ is_active: body.isActive })
         .eq('id', body.userId)
-        .select('id, username, display_name, role, is_active, created_at, updated_at')
+        .select(PROFILE_COLUMNS)
         .single();
       if (updateResult.error) throw updateResult.error;
       await auditLog(body.isActive ? 'admin_activate_user' : 'admin_deactivate_user', {

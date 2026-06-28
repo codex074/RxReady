@@ -1,10 +1,13 @@
 export type TicketStatus = 'preparing' | 'ready' | 'picked_up' | 'cancelled';
 
-export type StaffRole = 'admin' | 'pharmacist' | 'staff' | 'viewer';
+export type StaffRole = 'admin' | 'sub-admin' | 'staff';
 
 export type StaffUser = {
   id?: string;
   name: string;
+  prefix?: string;
+  firstName?: string;
+  lastName?: string;
   role: StaffRole | string;
   username?: string;
 };

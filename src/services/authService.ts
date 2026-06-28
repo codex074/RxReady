@@ -1,11 +1,17 @@
 import { requireSupabase, supabase } from '../lib/supabase';
 import type { ProfileRow } from '../types/database';
 import type { StaffUser } from '../types/backorder';
+import { composeName } from '../utils/name';
+
+const PROFILE_COLUMNS = 'id, username, prefix, f_name, l_name, role, is_active, created_at, updated_at';
 
 function profileToUser(profile: ProfileRow): StaffUser {
   return {
     id: profile.id,
-    name: profile.display_name || profile.username || 'เจ้าหน้าที่',
+    name: composeName(profile.prefix, profile.f_name, profile.l_name) || profile.username || 'เจ้าหน้าที่',
+    prefix: profile.prefix,
+    firstName: profile.f_name,
+    lastName: profile.l_name,
     role: profile.role,
     username: profile.username,
   };
@@ -38,7 +44,7 @@ export async function getCurrentUser(): Promise<StaffUser | null> {
 
   const profileResult = await supabase
     .from('profiles')
-    .select('id, username, display_name, role, is_active, created_at, updated_at')
+    .select(PROFILE_COLUMNS)
     .eq('id', session.user.id)
     .single<ProfileRow>();
 
@@ -64,5 +70,28 @@ export async function signIn(username: string, pin: string): Promise<StaffUser> 
 export async function signOut(): Promise<void> {
   if (!supabase) return;
   const result = await supabase.auth.signOut();
+  if (result.error) throw result.error;
+}
+
+export async function updateSelfProfile(
+  prefix: string,
+  firstName: string,
+  lastName: string,
+): Promise<StaffUser> {
+  const client = requireSupabase();
+  const rpc = await client.rpc('update_own_profile', {
+    new_prefix: prefix,
+    new_f_name: firstName,
+    new_l_name: lastName,
+  });
+  if (rpc.error) throw rpc.error;
+  const user = await getCurrentUser();
+  if (!user) throw new Error('ไม่พบข้อมูลผู้ใช้');
+  return user;
+}
+
+export async function updateSelfPassword(newPin: string): Promise<void> {
+  const client = requireSupabase();
+  const result = await client.auth.updateUser({ password: `RxReady#${newPin}` });
   if (result.error) throw result.error;
 }

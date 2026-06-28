@@ -8,17 +8,15 @@ import type {
 } from '../types/user';
 
 const roleLabels: Record<StaffRole, string> = {
-  admin: 'ผู้ดูแลระบบ',
-  pharmacist: 'เภสัชกรห้องยา',
-  staff: 'เจ้าหน้าที่ห้องยา',
-  viewer: 'ผู้ดูข้อมูล',
+  admin: 'Admin',
+  'sub-admin': 'Sub-Admin',
+  staff: 'Staff',
 };
 
 const roleColors: Record<StaffRole, string> = {
   admin: 'bg-[#fef3c7] text-[#92400e]',
-  pharmacist: 'bg-[#ede9fe] text-[#5b21b6]',
+  'sub-admin': 'bg-[#ede9fe] text-[#5b21b6]',
   staff: 'bg-[#dbeafe] text-[#1d4ed8]',
-  viewer: 'bg-[#f1f5f9] text-[#475569]',
 };
 
 type FilterStatus = 'all' | 'active' | 'inactive';
@@ -36,7 +34,9 @@ type UserManagementPageProps = {
 
 type UserForm = {
   username: string;
-  displayName: string;
+  prefix: string;
+  firstName: string;
+  lastName: string;
   password: string;
   role: StaffRole;
   isActive: boolean;
@@ -44,7 +44,9 @@ type UserForm = {
 
 const blankForm: UserForm = {
   username: '',
-  displayName: '',
+  prefix: '',
+  firstName: '',
+  lastName: '',
   password: '',
   role: 'staff',
   isActive: true,
@@ -71,7 +73,7 @@ export function UserManagementPage({
     if (statusFilter === 'inactive' && u.isActive) return false;
     if (!search.trim()) return true;
     const q = search.trim().toLowerCase();
-    return u.username.toLowerCase().includes(q) || u.displayName.toLowerCase().includes(q);
+    return u.username.toLowerCase().includes(q) || u.fullName.toLowerCase().includes(q);
   });
 
   const activeCount = users.filter((u) => u.isActive).length;
@@ -87,7 +89,9 @@ export function UserManagementPage({
     setEditingId(user.id);
     setForm({
       username: user.username,
-      displayName: user.displayName,
+      prefix: user.prefix,
+      firstName: user.firstName,
+      lastName: user.lastName,
       password: '',
       role: user.role,
       isActive: user.isActive,
@@ -100,13 +104,17 @@ export function UserManagementPage({
     const success = editingId
       ? await onUpdate({
           userId: editingId,
-          displayName: form.displayName,
+          prefix: form.prefix,
+          firstName: form.firstName,
+          lastName: form.lastName,
           role: form.role,
           isActive: form.isActive,
         })
       : await onCreate({
           username: form.username,
-          displayName: form.displayName,
+          prefix: form.prefix,
+          firstName: form.firstName,
+          lastName: form.lastName,
           password: form.password,
           role: form.role,
         });
@@ -150,10 +158,16 @@ export function UserManagementPage({
           </div>
           <div className="grid gap-[16px] min-[700px]:grid-cols-2">
             <Field label="ชื่อผู้ใช้">
-              <input type="text" autoComplete="off" disabled={Boolean(editingId)} required value={form.username} onChange={(event) => setForm((current) => ({ ...current, username: event.target.value }))} placeholder="เช่น pharmacist01" className="w-full rounded-[11px] border border-[#cbd5e1] px-[13px] py-[11px] text-[14px] outline-none focus:border-[#2563eb] focus:shadow-[0_0_0_3px_rgba(37,99,235,.12)] disabled:bg-[#f8fafc] disabled:text-[#94a3b8]" />
+              <input type="text" autoComplete="off" disabled={Boolean(editingId)} required value={form.username} onChange={(event) => setForm((current) => ({ ...current, username: event.target.value }))} placeholder="เช่น staff01" className="w-full rounded-[11px] border border-[#cbd5e1] px-[13px] py-[11px] text-[14px] outline-none focus:border-[#2563eb] focus:shadow-[0_0_0_3px_rgba(37,99,235,.12)] disabled:bg-[#f8fafc] disabled:text-[#94a3b8]" />
             </Field>
-            <Field label="ชื่อที่แสดง">
-              <input type="text" required value={form.displayName} onChange={(event) => setForm((current) => ({ ...current, displayName: event.target.value }))} placeholder="ชื่อเจ้าหน้าที่" className="w-full rounded-[11px] border border-[#cbd5e1] px-[13px] py-[11px] text-[14px] outline-none focus:border-[#2563eb] focus:shadow-[0_0_0_3px_rgba(37,99,235,.12)]" />
+            <Field label="คำนำหน้า">
+              <input type="text" value={form.prefix} onChange={(event) => setForm((current) => ({ ...current, prefix: event.target.value }))} placeholder="เช่น นาย / นาง / ภก. / ภญ." className="w-full rounded-[11px] border border-[#cbd5e1] px-[13px] py-[11px] text-[14px] outline-none focus:border-[#2563eb] focus:shadow-[0_0_0_3px_rgba(37,99,235,.12)]" />
+            </Field>
+            <Field label="ชื่อ">
+              <input type="text" required value={form.firstName} onChange={(event) => setForm((current) => ({ ...current, firstName: event.target.value }))} placeholder="ชื่อ" className="w-full rounded-[11px] border border-[#cbd5e1] px-[13px] py-[11px] text-[14px] outline-none focus:border-[#2563eb] focus:shadow-[0_0_0_3px_rgba(37,99,235,.12)]" />
+            </Field>
+            <Field label="นามสกุล">
+              <input type="text" value={form.lastName} onChange={(event) => setForm((current) => ({ ...current, lastName: event.target.value }))} placeholder="นามสกุล" className="w-full rounded-[11px] border border-[#cbd5e1] px-[13px] py-[11px] text-[14px] outline-none focus:border-[#2563eb] focus:shadow-[0_0_0_3px_rgba(37,99,235,.12)]" />
             </Field>
             {!editingId && (
               <Field label="รหัสผ่าน/PIN">
@@ -215,7 +229,7 @@ export function UserManagementPage({
               {filteredUsers.map((managedUser) => (
                 <tr key={managedUser.id} className={`border-t border-[#eef2f7] text-[13.5px] ${!managedUser.isActive ? 'opacity-60' : ''}`}>
                   <td className="px-[18px] py-[15px]">
-                    <div className="font-bold text-[#0f172a]">{managedUser.displayName}{managedUser.id === currentUserId ? ' (คุณ)' : ''}</div>
+                    <div className="font-bold text-[#0f172a]">{managedUser.fullName}{managedUser.id === currentUserId ? ' (คุณ)' : ''}</div>
                     <div className="mt-[2px] text-[12px] text-[#94a3b8]">@{managedUser.username}</div>
                   </td>
                   <td className="px-[14px] py-[15px]">
@@ -249,7 +263,7 @@ export function UserManagementPage({
             <div key={managedUser.id} className={`p-[16px] ${!managedUser.isActive ? 'opacity-60' : ''}`}>
               <div className="mb-[10px] flex items-start justify-between gap-[10px]">
                 <div>
-                  <div className="font-bold text-[#0f172a]">{managedUser.displayName}{managedUser.id === currentUserId ? ' (คุณ)' : ''}</div>
+                  <div className="font-bold text-[#0f172a]">{managedUser.fullName}{managedUser.id === currentUserId ? ' (คุณ)' : ''}</div>
                   <div className="text-[12px] text-[#94a3b8]">@{managedUser.username}</div>
                 </div>
                 <ActiveBadge active={managedUser.isActive} />

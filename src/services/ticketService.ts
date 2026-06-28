@@ -131,3 +131,17 @@ export async function lookupTicketStatus(
   if (result.error) throw result.error;
   return mapPublicStatus(result.data as PublicTicketStatus);
 }
+
+export async function lookupTicketStatusByDate(
+  visitDate: string,
+  phoneLast4: string,
+): Promise<Ticket[]> {
+  const result = await requireSupabase().rpc('lookup_ticket_by_date', {
+    visit_date: visitDate,
+    phone_last4: phoneLast4,
+  });
+  if (result.error) throw result.error;
+  const data = result.data;
+  if (!data || !Array.isArray(data)) return [];
+  return (data as PublicTicketStatus[]).map(mapPublicStatus).filter(Boolean) as Ticket[];
+}

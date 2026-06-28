@@ -5,6 +5,7 @@ import type {
   UpdateManagedUserInput,
 } from '../types/user';
 import { requireSupabase } from '../lib/supabase';
+import { composeName } from '../utils/name';
 
 type FunctionResponse = {
   users?: ProfileRow[];
@@ -17,7 +18,10 @@ function toManagedUser(profile: ProfileRow): ManagedUser {
   return {
     id: profile.id,
     username: profile.username,
-    displayName: profile.display_name,
+    prefix: profile.prefix,
+    firstName: profile.f_name,
+    lastName: profile.l_name,
+    fullName: composeName(profile.prefix, profile.f_name, profile.l_name) || profile.username,
     role: profile.role,
     isActive: profile.is_active,
     createdAt: profile.created_at,

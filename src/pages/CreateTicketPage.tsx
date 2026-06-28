@@ -1,11 +1,16 @@
+import { useState, useRef, useEffect } from 'react';
 import type { TicketForm } from '../types/backorder';
+import type { Drug } from '../types/drug';
 import { Icon } from '../components/Icon';
+import { drugNameColor } from '../utils/drugColor';
 
 type CreateTicketPageProps = {
   form: TicketForm;
   loading: boolean;
+  drugs: Drug[];
   onFieldChange: (field: keyof Omit<TicketForm, 'items'>, value: string) => void;
   onItemChange: (itemId: string, field: 'name' | 'qty' | 'unit' | 'note', value: string) => void;
+  onItemSelect: (itemId: string, drug: Drug) => void;
   onAddItem: () => void;
   onRemoveItem: (itemId: string) => void;
   onCancel: () => void;
@@ -15,11 +20,21 @@ type CreateTicketPageProps = {
 const inputClass =
   'w-full rounded-[11px] border border-[#cbd5e1] px-[13px] py-[11px] text-[14px] text-[#0f172a] outline-none transition focus:border-[#2563eb] focus:shadow-[0_0_0_3px_rgba(37,99,235,.15)]';
 
+function padHN(value: string): string {
+  const digits = value.replace(/\D/g, '');
+  if (!digits) return value;
+  if (digits.length === 7) return '00' + digits;
+  if (digits.length < 9) return digits.padStart(9, '0');
+  return digits.slice(0, 9);
+}
+
 export function CreateTicketPage({
   form,
   loading,
+  drugs,
   onFieldChange,
   onItemChange,
+  onItemSelect,
   onAddItem,
   onRemoveItem,
   onCancel,
@@ -36,13 +51,28 @@ export function CreateTicketPage({
         <p className="text-[12.5px] text-[#94a3b8]">ข้อมูลพื้นฐานสำหรับติดตามใบค้างยา</p>
         <div className="mt-[18px] grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-[15px]">
           <Field label="HN" required>
-            <input value={form.hn} onChange={(event) => onFieldChange('hn', event.target.value)} placeholder="เช่น 0012453" className={inputClass} />
+            <input
+              value={form.hn}
+              onChange={(event) => onFieldChange('hn', event.target.value.replace(/\D/g, '').slice(0, 9))}
+              onBlur={(event) => { const padded = padHN(event.target.value); if (padded !== form.hn) onFieldChange('hn', padded); }}
+              placeholder="เช่น 0012453"
+              inputMode="numeric"
+              maxLength={9}
+              className={inputClass}
+            />
           </Field>
           <Field label="ชื่อ-สกุลผู้ป่วย" required>
             <input value={form.name} onChange={(event) => onFieldChange('name', event.target.value)} placeholder="เช่น สมชาย ใจดี" className={inputClass} />
           </Field>
-          <Field label="เบอร์โทรศัพท์">
-            <input value={form.phone} onChange={(event) => onFieldChange('phone', event.target.value)} placeholder="08x-xxx-xxxx" inputMode="tel" className={inputClass} />
+          <Field label="เบอร์โทรศัพท์" required>
+            <input
+              value={form.phone}
+              onChange={(event) => onFieldChange('phone', event.target.value.replace(/\D/g, '').slice(0, 10))}
+              placeholder="08xxxxxxxx"
+              inputMode="numeric"
+              maxLength={10}
+              className={inputClass}
+            />
           </Field>
           <div className="col-span-full">
             <Field label="หมายเหตุ">
@@ -62,7 +92,12 @@ export function CreateTicketPage({
             <div key={item.id} className="flex flex-wrap items-end gap-[11px] rounded-[14px] border border-[#eef2f7] bg-[#fafcff] p-[14px]">
               <div className="mb-px flex h-[28px] w-[28px] shrink-0 items-center justify-center self-end rounded-[8px] bg-[#e0ecfd] text-[13px] font-bold text-[#1d4ed8]">{index + 1}</div>
               <DrugField label="ชื่อยา" className="min-w-[150px] flex-[3_1_200px]">
-                <input value={item.name} onChange={(event) => onItemChange(item.id, 'name', event.target.value)} placeholder="เช่น Metformin 500 mg" className={drugInputClass} />
+                <DrugAutocomplete
+                  value={item.name}
+                  drugs={drugs}
+                  onChange={(v) => onItemChange(item.id, 'name', v)}
+                  onSelect={(drug) => onItemSelect(item.id, drug)}
+                />
               </DrugField>
               <DrugField label="จำนวนค้าง" className="min-w-[72px] flex-[1_1_80px]">
                 <input value={item.qty} onChange={(event) => onItemChange(item.id, 'qty', event.target.value)} placeholder="0" inputMode="numeric" className={drugInputClass} />
@@ -87,6 +122,92 @@ export function CreateTicketPage({
         <button onClick={onCancel} className="cursor-pointer rounded-[12px] border border-[#cbd5e1] bg-white px-[22px] py-[12px] text-[14.5px] font-semibold text-[#475569] hover:bg-[#f8fafc]">ยกเลิก</button>
         <button onClick={onSave} disabled={loading} className="inline-flex cursor-pointer items-center gap-[8px] rounded-[12px] border-0 bg-[#2563eb] px-[26px] py-[12px] text-[14.5px] font-bold text-white hover:bg-[#1d4ed8]"><Icon name="save" size={18} />{loading ? 'กำลังบันทึก...' : 'บันทึกใบค้างยา'}</button>
       </div>
+    </div>
+  );
+}
+
+const MAX_SUGGESTIONS = 30;
+
+type DrugAutocompleteProps = {
+  value: string;
+  drugs: Drug[];
+  onChange: (v: string) => void;
+  onSelect: (drug: Drug) => void;
+};
+
+function DrugAutocomplete({ value, drugs, onChange, onSelect }: DrugAutocompleteProps) {
+  const [open, setOpen] = useState(false);
+  const [activeIdx, setActiveIdx] = useState(0);
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const listRef = useRef<HTMLUListElement>(null);
+
+  const suggestions = value.trim().length >= 1
+    ? drugs
+        .filter((d) => d.active && (
+          d.name.toLowerCase().includes(value.toLowerCase()) ||
+          d.genericName.toLowerCase().includes(value.toLowerCase())
+        ))
+        .slice(0, MAX_SUGGESTIONS)
+    : [];
+
+  useEffect(() => { setActiveIdx(0); }, [value]);
+
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, []);
+
+  function handleKeyDown(e: React.KeyboardEvent) {
+    if (!open || suggestions.length === 0) return;
+    if (e.key === 'ArrowDown') { e.preventDefault(); setActiveIdx((i) => Math.min(i + 1, suggestions.length - 1)); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); setActiveIdx((i) => Math.max(i - 1, 0)); }
+    else if (e.key === 'Enter') { e.preventDefault(); pick(suggestions[activeIdx]); }
+    else if (e.key === 'Escape') setOpen(false);
+  }
+
+  function pick(drug: Drug) {
+    onSelect(drug);
+    setOpen(false);
+  }
+
+  return (
+    <div ref={wrapRef} className="relative">
+      <input
+        value={value}
+        onChange={(e) => { onChange(e.target.value); setOpen(true); }}
+        onFocus={() => { if (value.trim()) setOpen(true); }}
+        onKeyDown={handleKeyDown}
+        placeholder="พิมพ์เพื่อค้นหายา..."
+        className={drugInputClass}
+        autoComplete="off"
+      />
+      {open && suggestions.length > 0 && (
+        <ul
+          ref={listRef}
+          className="absolute left-0 top-[calc(100%+4px)] z-50 max-h-[260px] w-full min-w-[280px] overflow-y-auto rounded-[12px] border border-[#e2e8f0] bg-white py-[4px] shadow-[0_8px_30px_-8px_rgba(15,42,90,.22)]"
+        >
+          {suggestions.map((drug, i) => (
+            <li key={drug.id}>
+              <button
+                type="button"
+                onMouseDown={(e) => { e.preventDefault(); pick(drug); }}
+                onMouseEnter={() => setActiveIdx(i)}
+                className={`flex w-full cursor-pointer flex-col gap-[1px] border-0 px-[13px] py-[8px] text-left ${i === activeIdx ? 'bg-[#eff6ff]' : 'bg-transparent hover:bg-[#f8fafc]'}`}
+              >
+                <span className="text-[13.5px] font-semibold leading-snug" style={{ color: drugNameColor(drug.colorTag) }}>
+                  {drug.name}
+                </span>
+                <span className="text-[11.5px] text-[#94a3b8]">
+                  {[drug.genericName, drug.strength, drug.unit].filter(Boolean).join(' · ')}
+                </span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }

@@ -3,6 +3,7 @@ export type AppRoute =
   | 'dashboard'
   | 'create'
   | 'list'
+  | 'outstanding'
   | 'detail'
   | 'users'
   | 'drugs'

@@ -1,6 +1,8 @@
 import { useState, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import type { Drug, CreateDrugInput } from '../types/drug';
 import { Icon } from '../components/Icon';
+import { drugNameColor } from '../utils/drugColor';
 
 type DrugManagementPageProps = {
   drugs: Drug[];
@@ -110,15 +112,18 @@ function DrugForm({ initial, onSubmit, onCancel, submitLabel }: DrugFormProps) {
 type ModalProps = { title: string; onClose: () => void; children: React.ReactNode };
 function Modal({ title, onClose, children }: ModalProps) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(15,23,42,.55)] px-[16px]">
-      <div className="w-full max-w-[500px] rounded-[18px] border border-[#e7eef7] bg-white p-[26px] shadow-[0_20px_60px_-20px_rgba(15,42,90,.45)]">
-        <div className="mb-[18px] flex items-center justify-between">
-          <h2 className="text-[16px] font-bold text-[#0f172a]">{title}</h2>
-          <button onClick={onClose} className="inline-flex h-[32px] w-[32px] cursor-pointer items-center justify-center rounded-[8px] border-0 bg-transparent text-[#94a3b8] hover:bg-[#f1f5f9]"><Icon name="x" size={17} /></button>
+    createPortal(
+      <div className="fixed inset-0 z-[9999] flex items-start justify-center overflow-y-auto bg-[rgba(15,23,42,.55)] px-[16px] py-[32px]">
+        <div className="w-full max-w-[500px] rounded-[18px] border border-[#e7eef7] bg-white p-[26px] shadow-[0_20px_60px_-20px_rgba(15,42,90,.45)]">
+          <div className="mb-[18px] flex items-center justify-between">
+            <h2 className="text-[16px] font-bold text-[#0f172a]">{title}</h2>
+            <button onClick={onClose} className="inline-flex h-[32px] w-[32px] cursor-pointer items-center justify-center rounded-[8px] border-0 bg-transparent text-[#94a3b8] hover:bg-[#f1f5f9]"><Icon name="x" size={17} /></button>
+          </div>
+          {children}
         </div>
-        {children}
-      </div>
-    </div>
+      </div>,
+      document.body,
+    )
   );
 }
 
@@ -132,12 +137,14 @@ export function DrugManagementPage({ drugs, loading, onRefresh, onCreate, onUpda
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return drugs.filter((d) => {
-      if (filterActive === 'active' && !d.active) return false;
-      if (filterActive === 'inactive' && d.active) return false;
-      if (!q) return true;
-      return d.name.toLowerCase().includes(q) || d.genericName.toLowerCase().includes(q) || d.strength.toLowerCase().includes(q);
-    });
+    return drugs
+      .filter((d) => {
+        if (filterActive === 'active' && !d.active) return false;
+        if (filterActive === 'inactive' && d.active) return false;
+        if (!q) return true;
+        return d.name.toLowerCase().includes(q) || d.genericName.toLowerCase().includes(q) || d.strength.toLowerCase().includes(q);
+      })
+      .sort((a, b) => Number(b.active) - Number(a.active) || a.name.localeCompare(b.name, 'th'));
   }, [drugs, query, filterActive]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
@@ -147,18 +154,30 @@ export function DrugManagementPage({ drugs, loading, onRefresh, onCreate, onUpda
   function handleFilterChange(v: typeof filterActive) { setFilterActive(v); setPage(1); }
 
   async function handleCreate(input: CreateDrugInput) {
-    await onCreate(input);
-    setShowCreate(false);
+    try {
+      await onCreate(input);
+      setShowCreate(false);
+    } catch {
+      // error already shown by onCreate; keep modal open so user can retry
+    }
   }
 
   async function handleEdit(input: CreateDrugInput) {
     if (!editTarget) return;
-    await onUpdate(editTarget.id, input);
-    setEditTarget(null);
+    try {
+      await onUpdate(editTarget.id, input);
+      setEditTarget(null);
+    } catch {
+      // error already shown by onUpdate; keep modal open so user can retry
+    }
   }
 
   async function handleToggleActive(drug: Drug) {
-    await onUpdate(drug.id, { active: !drug.active });
+    try {
+      await onUpdate(drug.id, { active: !drug.active });
+    } catch {
+      // error already shown by onUpdate
+    }
   }
 
   return (
@@ -230,7 +249,7 @@ export function DrugManagementPage({ drugs, loading, onRefresh, onCreate, onUpda
                 {pageData.map((drug) => (
                   <tr key={drug.id} className={`border-b border-[#f8fafc] last:border-0 hover:bg-[#fafcff] ${!drug.active ? 'opacity-50' : ''}`}>
                     <td className="max-w-[260px] px-[16px] py-[10px]">
-                      <span className="line-clamp-2 font-semibold text-[#0f172a]">{drug.name}</span>
+                      <span className="line-clamp-2 font-semibold" style={{ color: drugNameColor(drug.colorTag) }}>{drug.name}</span>
                     </td>
                     <td className="max-w-[180px] px-[12px] py-[10px] text-[#475569]">
                       <span className="line-clamp-1">{drug.genericName || '—'}</span>
