@@ -5,6 +5,7 @@ import { Icon } from '../components/Icon';
 import { drugNameColor } from '../utils/drugColor';
 
 type CreateTicketPageProps = {
+  mode?: 'create' | 'edit';
   form: TicketForm;
   loading: boolean;
   drugs: Drug[];
@@ -29,6 +30,7 @@ function padHN(value: string): string {
 }
 
 export function CreateTicketPage({
+  mode = 'create',
   form,
   loading,
   drugs,
@@ -40,11 +42,12 @@ export function CreateTicketPage({
   onCancel,
   onSave,
 }: CreateTicketPageProps) {
+  const editing = mode === 'edit';
   return (
-    <div className="animate-fade-up max-w-[900px]">
-      <button onClick={onCancel} className="mb-[14px] inline-flex cursor-pointer items-center gap-[6px] border-0 bg-transparent p-0 text-[13.5px] font-semibold text-[#64748b] hover:text-[#2563eb]">← กลับหน้าหลัก</button>
-      <h1 className="mb-[4px] text-[clamp(20px,3vw,26px)] font-bold text-[#0f172a]">สร้างใบค้างยา</h1>
-      <p className="mb-[22px] text-[13.5px] text-[#64748b]">กรอกข้อมูลผู้ป่วยและรายการยาที่ค้าง ระบบจะออกเลขใบค้างยาและ QR Code ให้อัตโนมัติ</p>
+    <div className="mx-auto max-w-[900px] animate-fade-up">
+      <button onClick={onCancel} className="mb-[14px] inline-flex cursor-pointer items-center gap-[6px] border-0 bg-transparent p-0 text-[13.5px] font-semibold text-[#64748b] hover:text-[#2563eb]">{editing ? '← กลับหน้ารายละเอียด' : '← กลับหน้าหลัก'}</button>
+      <h1 className="mb-[4px] text-[clamp(20px,3vw,26px)] font-bold text-[#0f172a]">{editing ? 'แก้ไขใบค้างยา' : 'สร้างใบค้างยา'}</h1>
+      <p className="mb-[22px] text-[13.5px] text-[#64748b]">{editing ? 'แก้ไขข้อมูลผู้ป่วยและรายการยาที่ค้าง' : 'กรอกข้อมูลผู้ป่วยและรายการยาที่ค้าง ระบบจะออกเลขใบค้างยาและ QR Code ให้อัตโนมัติ'}</p>
 
       <div className="mb-[16px] rounded-[18px] border border-[#e7eef7] bg-white p-[22px]">
         <h2 className="mb-[3px] text-[16px] font-bold text-[#0f172a]">ข้อมูลผู้ป่วย</h2>
@@ -120,7 +123,7 @@ export function CreateTicketPage({
 
       <div className="flex flex-wrap justify-end gap-[12px]">
         <button onClick={onCancel} className="cursor-pointer rounded-[12px] border border-[#cbd5e1] bg-white px-[22px] py-[12px] text-[14.5px] font-semibold text-[#475569] hover:bg-[#f8fafc]">ยกเลิก</button>
-        <button onClick={onSave} disabled={loading} className="inline-flex cursor-pointer items-center gap-[8px] rounded-[12px] border-0 bg-[#2563eb] px-[26px] py-[12px] text-[14.5px] font-bold text-white hover:bg-[#1d4ed8]"><Icon name="save" size={18} />{loading ? 'กำลังบันทึก...' : 'บันทึกใบค้างยา'}</button>
+        <button onClick={onSave} disabled={loading} className="inline-flex cursor-pointer items-center gap-[8px] rounded-[12px] border-0 bg-[#2563eb] px-[26px] py-[12px] text-[14.5px] font-bold text-white hover:bg-[#1d4ed8]"><Icon name="save" size={18} />{loading ? 'กำลังบันทึก...' : editing ? 'บันทึกการแก้ไข' : 'บันทึกใบค้างยา'}</button>
       </div>
     </div>
   );

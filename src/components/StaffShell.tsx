@@ -20,11 +20,13 @@ type StaffShellProps = {
 const pageTitles: Partial<Record<AppRoute, string>> = {
   dashboard: 'ภาพรวมระบบ',
   create: 'สร้างใบค้างยา',
+  edit: 'แก้ไขใบค้างยา',
   list: 'รายการใบค้างยา',
   outstanding: 'ยาค้างคนไข้',
   detail: 'รายละเอียดใบค้างยา',
   users: 'จัดการผู้ใช้',
   drugs: 'จัดการรายการยา',
+  audit: 'ประวัติการทำรายการ',
 };
 
 const roleLabels: Record<string, string> = {
@@ -75,6 +77,7 @@ export function StaffShell({
           <NavButton active={route === 'outstanding'} icon="pill" label="ยาค้างคนไข้" onClick={() => onNavigate('outstanding')} />
           {user.role === 'admin' && <NavButton active={route === 'users'} icon="users" label="จัดการผู้ใช้" onClick={() => onNavigate('users')} />}
           {(user.role === 'admin' || user.role === 'sub-admin') && <NavButton active={route === 'drugs'} icon="pill" label="จัดการรายการยา" onClick={() => onNavigate('drugs')} />}
+          {user.role === 'admin' && <NavButton active={route === 'audit'} icon="clock" label="ประวัติการทำรายการ" onClick={() => onNavigate('audit')} />}
           <div className="px-[12px] pb-[8px] pt-[18px] text-[11px] font-bold tracking-[.08em] text-[#b6c2d2]">สำหรับผู้ป่วย</div>
           <NavButton active={false} icon="search" label="ค้นหาสถานะยา" onClick={() => onNavigate('lookup')} />
         </nav>
@@ -127,7 +130,7 @@ export function StaffShell({
 
 type NavButtonProps = {
   active: boolean;
-  icon: 'dashboard' | 'plus-circle' | 'list' | 'search' | 'users' | 'pill';
+  icon: 'dashboard' | 'plus-circle' | 'list' | 'search' | 'users' | 'pill' | 'clock';
   label: string;
   onClick: () => void;
 };

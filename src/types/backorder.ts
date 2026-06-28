@@ -33,6 +33,15 @@ export type UpdateTicketStatusInput = {
   reason?: string;
 };
 
+export type UpdateBackorderTicketInput = {
+  ticketId: string;
+  patientName: string;
+  hn?: string;
+  phone: string;
+  note?: string;
+  items: Array<BackorderItemInput & { itemId?: string }>;
+};
+
 export type TicketItem = {
   id: string;
   name: string;
@@ -98,4 +107,25 @@ export type CreateTicketResult = {
   publicToken?: string;
   status: TicketStatus;
   statusUrl: string;
+};
+
+export type AuditAction =
+  | 'create_ticket'
+  | 'update_ticket'
+  | 'delete_ticket'
+  | 'update_status'
+  | 'create_drug'
+  | 'update_drug'
+  | 'delete_drug'
+  | string;
+
+export type TicketAuditLog = {
+  id: string;
+  action: AuditAction;
+  oldStatus: TicketStatus | null;
+  newStatus: TicketStatus | null;
+  actorId: string | null;
+  actorName: string;
+  detail: Record<string, unknown>;
+  createdAt: number;
 };

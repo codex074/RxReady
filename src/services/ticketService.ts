@@ -4,7 +4,9 @@ import type {
   CreateTicketResult,
   PublicTicketStatus,
   Ticket,
+  TicketAuditLog,
   TicketStatus,
+  UpdateBackorderTicketInput,
 } from '../types/backorder';
 import type { BackorderTicketWithItems } from '../types/database';
 import { normalizeStatus } from '../utils/status';
@@ -112,6 +114,62 @@ export async function updateStatus(
   });
 
   if (result.error) throw result.error;
+}
+
+export async function deleteTicket(ticketId: string): Promise<void> {
+  const result = await requireSupabase().rpc('delete_backorder_ticket', {
+    target_ticket_id: ticketId,
+  });
+
+  if (result.error) throw result.error;
+}
+
+export async function updateTicket(input: UpdateBackorderTicketInput): Promise<void> {
+  const result = await requireSupabase().rpc('update_backorder_ticket', {
+    payload: {
+      ticketId: input.ticketId,
+      patientName: input.patientName,
+      hn: input.hn || null,
+      phone: input.phone,
+      note: input.note || null,
+      items: input.items.map((item) => ({
+        itemId: item.itemId || null,
+        drugName: item.drugName,
+        qty: Number(item.qty),
+        unit: item.unit,
+        note: item.note || null,
+      })),
+    },
+  });
+
+  if (result.error) throw result.error;
+}
+
+export async function getTicketAuditHistory(ticketId: string): Promise<TicketAuditLog[]> {
+  const result = await requireSupabase().rpc('get_ticket_audit_history', {
+    target_ticket_id: ticketId,
+  });
+
+  if (result.error) throw result.error;
+  return ((result.data || []) as Array<{
+    id: string;
+    action: string;
+    old_status: TicketStatus | null;
+    new_status: TicketStatus | null;
+    actor_id: string | null;
+    actor_name: string;
+    detail: Record<string, unknown> | null;
+    created_at: string;
+  }>).map((row) => ({
+    id: row.id,
+    action: row.action,
+    oldStatus: row.old_status,
+    newStatus: row.new_status,
+    actorId: row.actor_id,
+    actorName: row.actor_name,
+    detail: row.detail || {},
+    createdAt: toMs(row.created_at),
+  }));
 }
 
 export async function getPublicStatusByToken(token: string): Promise<Ticket | null> {

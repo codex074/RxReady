@@ -1,4 +1,4 @@
-import type { Ticket, TicketStatus } from '../types/backorder';
+import type { Ticket, TicketAuditLog, TicketStatus } from '../types/backorder';
 import { formatRelative, formatThaiDate } from '../utils/format';
 import { PUBLIC_TIMELINE_ORDER, STAFF_STATUS_ORDER, STATUSES } from '../utils/status';
 import { Icon } from '../components/Icon';
@@ -7,16 +7,24 @@ import { StatusBadge } from '../components/StatusBadge';
 type TicketDetailPageProps = {
   ticket: Ticket;
   loading: boolean;
+  auditLoading: boolean;
+  auditLogs: TicketAuditLog[];
+  canDelete: boolean;
   onBack: () => void;
   onPrint: () => void;
+  onDelete: () => void;
   onStatusChange: (status: TicketStatus) => void;
 };
 
 export function TicketDetailPage({
   ticket,
   loading,
+  auditLoading,
+  auditLogs,
+  canDelete,
   onBack,
   onPrint,
+  onDelete,
   onStatusChange,
 }: TicketDetailPageProps) {
   const statusMeta = STATUSES[ticket.status];
@@ -34,7 +42,10 @@ export function TicketDetailPage({
           </div>
           <div className="mt-[6px] text-[13px] text-[#94a3b8]">สร้างเมื่อ {formatThaiDate(ticket.createdAt)} · อัปเดต {formatRelative(ticket.updatedAt)}</div>
         </div>
-        <button onClick={onPrint} className="inline-flex cursor-pointer items-center gap-[8px] rounded-[12px] border-0 bg-[#2563eb] px-[18px] py-[11px] text-[14px] font-bold text-white hover:bg-[#1d4ed8]"><Icon name="printer" size={18} />พิมพ์ QR / สลิป</button>
+        <div className="flex flex-wrap gap-[9px]">
+          {canDelete && <button disabled={loading} onClick={onDelete} className="inline-flex cursor-pointer items-center gap-[8px] rounded-[12px] border border-[#fecdd3] bg-white px-[16px] py-[11px] text-[14px] font-bold text-[#be123c] hover:bg-[#fff1f2] disabled:cursor-not-allowed disabled:opacity-60"><Icon name="trash" size={17} />ลบใบค้างยา</button>}
+          <button onClick={onPrint} className="inline-flex cursor-pointer items-center gap-[8px] rounded-[12px] border-0 bg-[#2563eb] px-[18px] py-[11px] text-[14px] font-bold text-white hover:bg-[#1d4ed8]"><Icon name="printer" size={18} />พิมพ์ QR / สลิป</button>
+        </div>
       </div>
 
       <div className="flex flex-wrap items-start gap-[16px]">
@@ -127,6 +138,32 @@ export function TicketDetailPage({
               {ticket.status === 'cancelled' && <span className="ml-auto rounded-full border border-current px-[9px] py-[2px] text-[10.5px] font-bold">ปัจจุบัน</span>}
             </button>
           </div>
+
+          <div className="rounded-[18px] border border-[#e7eef7] bg-white p-[22px]">
+            <h2 className="mb-[3px] text-[15.5px] font-bold text-[#0f172a]">ประวัติการทำรายการ</h2>
+            <p className="mb-[16px] text-[12.5px] text-[#94a3b8]">เก็บย้อนหลัง 3 เดือน</p>
+            {auditLoading ? (
+              <div className="text-[13px] text-[#94a3b8]">กำลังโหลดประวัติ...</div>
+            ) : auditLogs.length === 0 ? (
+              <div className="text-[13px] text-[#94a3b8]">ยังไม่มีประวัติการทำรายการ</div>
+            ) : (
+              <div className="flex flex-col">
+                {auditLogs.map((log, index) => (
+                  <div key={log.id} className="flex gap-[11px]">
+                    <div className="flex flex-col items-center">
+                      <span className="mt-[4px] h-[9px] w-[9px] shrink-0 rounded-full bg-[#2563eb]" />
+                      {index < auditLogs.length - 1 && <span className="my-[3px] min-h-[24px] w-px flex-1 bg-[#e2e8f0]" />}
+                    </div>
+                    <div className="pb-[14px]">
+                      <div className="text-[13.5px] font-semibold text-[#334155]">{auditActionText(log)}</div>
+                      <div className="mt-[2px] text-[12px] text-[#64748b]">โดย {log.actorName}</div>
+                      <div className="mt-[1px] text-[11.5px] text-[#94a3b8]">{formatThaiDate(log.createdAt)}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>
@@ -141,4 +178,14 @@ type InfoProps = {
 
 function Info({ label, value, tabular }: InfoProps) {
   return <div><div className="mb-[3px] text-[12px] text-[#94a3b8]">{label}</div><div className={`text-[14.5px] font-semibold text-[#0f172a] ${tabular ? 'tabular-nums' : ''}`}>{value}</div></div>;
+}
+
+function auditActionText(log: TicketAuditLog): string {
+  if (log.action === 'create_ticket') return 'ออกใบค้างยา';
+  if (log.action === 'update_status' && log.newStatus) {
+    const status = STATUSES[log.newStatus].label;
+    const reason = typeof log.detail.reason === 'string' ? log.detail.reason.trim() : '';
+    return reason ? `เปลี่ยนสถานะเป็น “${status}” · ${reason}` : `เปลี่ยนสถานะเป็น “${status}”`;
+  }
+  return 'ทำรายการกับใบค้างยา';
 }

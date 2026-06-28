@@ -39,43 +39,42 @@ export async function listDrugs(): Promise<Drug[]> {
 }
 
 export async function createDrug(input: CreateDrugInput): Promise<Drug> {
-  const result = await requireSupabase()
-    .from('drugs')
-    .insert({
+  const result = await requireSupabase().rpc('create_drug_with_audit', {
+    payload: {
       name: input.name.trim(),
-      generic_name: input.genericName.trim(),
+      genericName: input.genericName.trim(),
       strength: input.strength.trim(),
       unit: input.unit.trim(),
       price: input.price,
-      color_tag: input.colorTag || null,
-    })
-    .select()
-    .single();
+      colorTag: input.colorTag || null,
+      active: true,
+    },
+  });
   if (result.error) throw result.error;
   return mapDrug(result.data as DrugRow);
 }
 
 export async function updateDrug(id: string, input: UpdateDrugInput): Promise<Drug> {
-  const patch: Partial<DrugRow> = {};
-  if (input.name !== undefined) patch.name = input.name.trim();
-  if (input.genericName !== undefined) patch.generic_name = input.genericName.trim();
-  if (input.strength !== undefined) patch.strength = input.strength.trim();
-  if (input.unit !== undefined) patch.unit = input.unit.trim();
-  if (input.price !== undefined) patch.price = input.price;
-  if (input.colorTag !== undefined) patch.color_tag = input.colorTag || null;
-  if (input.active !== undefined) patch.active = input.active;
+  const payload: Record<string, unknown> = {};
+  if (input.name !== undefined) payload.name = input.name.trim();
+  if (input.genericName !== undefined) payload.genericName = input.genericName.trim();
+  if (input.strength !== undefined) payload.strength = input.strength.trim();
+  if (input.unit !== undefined) payload.unit = input.unit.trim();
+  if (input.price !== undefined) payload.price = input.price;
+  if (input.colorTag !== undefined) payload.colorTag = input.colorTag || null;
+  if (input.active !== undefined) payload.active = input.active;
 
-  const result = await requireSupabase()
-    .from('drugs')
-    .update(patch)
-    .eq('id', id)
-    .select()
-    .single();
+  const result = await requireSupabase().rpc('update_drug_with_audit', {
+    target_drug_id: id,
+    payload,
+  });
   if (result.error) throw result.error;
   return mapDrug(result.data as DrugRow);
 }
 
 export async function deleteDrug(id: string): Promise<void> {
-  const result = await requireSupabase().from('drugs').delete().eq('id', id);
+  const result = await requireSupabase().rpc('delete_drug_with_audit', {
+    target_drug_id: id,
+  });
   if (result.error) throw result.error;
 }

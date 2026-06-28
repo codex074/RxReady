@@ -7,9 +7,12 @@ type TicketRowsProps = {
   mode: 'recent' | 'list';
   onView: (ticketId: string) => void;
   onPrint: (ticketId: string) => void;
+  onEdit?: (ticketId: string) => void;
+  onDelete?: (ticketId: string) => void;
+  canDelete?: boolean;
 };
 
-export function TicketRows({ tickets, mode, onView, onPrint }: TicketRowsProps) {
+export function TicketRows({ tickets, mode, onView, onPrint, onEdit, onDelete, canDelete = false }: TicketRowsProps) {
   if (mode === 'recent') {
     return (
       <>
@@ -39,7 +42,7 @@ export function TicketRows({ tickets, mode, onView, onPrint }: TicketRowsProps) 
             </tbody>
           </table>
         </div>
-        <MobileTicketCards tickets={tickets} mode={mode} onView={onView} onPrint={onPrint} />
+        <MobileTicketCards tickets={tickets} mode={mode} onView={onView} onPrint={onPrint} onEdit={onEdit} onDelete={onDelete} canDelete={canDelete} />
       </>
     );
   }
@@ -66,6 +69,8 @@ export function TicketRows({ tickets, mode, onView, onPrint }: TicketRowsProps) 
                 <td className="px-[14px] py-[13px] text-[12.5px] text-[#94a3b8]">{formatThaiDate(ticket.createdAt)}</td>
                 <td className="whitespace-nowrap py-[13px] pr-[20px] text-right">
                   <button onClick={() => onView(ticket.id)} className="mr-[6px] cursor-pointer rounded-[9px] border border-[#dbeafe] bg-[#eff6ff] px-[11px] py-[6px] text-[12.5px] font-semibold text-[#1d4ed8] hover:bg-[#dbeafe]">ดู</button>
+                  {onEdit && <button onClick={() => onEdit(ticket.id)} className="mr-[6px] cursor-pointer rounded-[9px] border border-[#fde68a] bg-[#fffbeb] px-[11px] py-[6px] text-[12.5px] font-semibold text-[#a16207] hover:bg-[#fef3c7]">แก้ไข</button>}
+                  {canDelete && onDelete && <button onClick={() => onDelete(ticket.id)} className="mr-[6px] cursor-pointer rounded-[9px] border border-[#fecdd3] bg-[#fff1f2] px-[11px] py-[6px] text-[12.5px] font-semibold text-[#be123c] hover:bg-[#ffe4e6]">ลบ</button>}
                   <button onClick={() => onPrint(ticket.id)} className="cursor-pointer rounded-[9px] border border-[#e2e8f0] bg-white px-[11px] py-[6px] text-[12.5px] font-semibold text-[#475569] hover:bg-[#f8fafc]">พิมพ์ QR</button>
                 </td>
               </tr>
@@ -73,12 +78,12 @@ export function TicketRows({ tickets, mode, onView, onPrint }: TicketRowsProps) 
           </tbody>
         </table>
       </div>
-      <MobileTicketCards tickets={tickets} mode={mode} onView={onView} onPrint={onPrint} />
+      <MobileTicketCards tickets={tickets} mode={mode} onView={onView} onPrint={onPrint} onEdit={onEdit} onDelete={onDelete} canDelete={canDelete} />
     </>
   );
 }
 
-function MobileTicketCards({ tickets, mode, onView, onPrint }: TicketRowsProps) {
+function MobileTicketCards({ tickets, mode, onView, onPrint, onEdit, onDelete, canDelete = false }: TicketRowsProps) {
   return (
     <div className="flex flex-col min-[900px]:hidden">
       {tickets.map((ticket) => (
@@ -89,8 +94,10 @@ function MobileTicketCards({ tickets, mode, onView, onPrint }: TicketRowsProps) 
           </div>
           <div className="flex items-center justify-between gap-[10px]">
             <span className="text-[12px] text-[#94a3b8]">{ticket.items.length} รายการ · {mode === 'recent' ? formatRelative(ticket.updatedAt) : formatThaiDate(ticket.createdAt)}</span>
-            <div className="flex gap-[6px]">
+            <div className="flex flex-wrap justify-end gap-[6px]">
               <button onClick={() => onView(ticket.id)} className="rounded-[9px] border border-[#dbeafe] bg-[#eff6ff] px-[12px] py-[6px] text-[12.5px] font-semibold text-[#1d4ed8]">ดู</button>
+              {mode === 'list' && onEdit && <button onClick={() => onEdit(ticket.id)} className="rounded-[9px] border border-[#fde68a] bg-[#fffbeb] px-[12px] py-[6px] text-[12.5px] font-semibold text-[#a16207]">แก้ไข</button>}
+              {mode === 'list' && canDelete && onDelete && <button onClick={() => onDelete(ticket.id)} className="rounded-[9px] border border-[#fecdd3] bg-[#fff1f2] px-[12px] py-[6px] text-[12.5px] font-semibold text-[#be123c]">ลบ</button>}
               <button onClick={() => onPrint(ticket.id)} className="rounded-[9px] border border-[#e2e8f0] bg-white px-[12px] py-[6px] text-[12.5px] font-semibold text-[#475569]">พิมพ์</button>
             </div>
           </div>

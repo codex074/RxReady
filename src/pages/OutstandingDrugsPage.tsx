@@ -1,11 +1,14 @@
 import { useMemo, useState } from 'react';
 import type { Ticket, TicketStatus } from '../types/backorder';
+import type { Drug } from '../types/drug';
 import { STATUSES } from '../utils/status';
 import { todayThai } from '../utils/format';
 import { Icon } from '../components/Icon';
+import { drugNameColor } from '../utils/drugColor';
 
 type OutstandingDrugsPageProps = {
   tickets: Ticket[];
+  drugs: Drug[];
   onView: (ticketId: string) => void;
 };
 
@@ -27,14 +30,18 @@ type DrugSummary = {
   readyQty: number;
   ticketCount: number;
   patientCount: number;
+  colorTag: string | null;
   lines: PatientLine[];
 };
 
 // ยังค้างคนไข้ = ยังไม่ได้รับยา และไม่ถูกยกเลิก (กำลังเตรียม + พร้อมรับ)
 const OUTSTANDING_STATUSES: TicketStatus[] = ['preparing', 'ready'];
 
-function buildSummary(tickets: Ticket[]): DrugSummary[] {
+function buildSummary(tickets: Ticket[], drugs: Drug[]): DrugSummary[] {
   const groups = new Map<string, DrugSummary>();
+  const colorByName = new Map(
+    drugs.map((drug) => [drug.name.trim().toLowerCase(), drug.colorTag]),
+  );
 
   for (const ticket of tickets) {
     if (!OUTSTANDING_STATUSES.includes(ticket.status)) continue;
@@ -57,6 +64,7 @@ function buildSummary(tickets: Ticket[]): DrugSummary[] {
           readyQty: 0,
           ticketCount: 0,
           patientCount: 0,
+          colorTag: colorByName.get(name.toLowerCase()) || null,
           lines: [],
         };
         groups.set(key, group);
@@ -88,11 +96,11 @@ function buildSummary(tickets: Ticket[]): DrugSummary[] {
   );
 }
 
-export function OutstandingDrugsPage({ tickets, onView }: OutstandingDrugsPageProps) {
+export function OutstandingDrugsPage({ tickets, drugs, onView }: OutstandingDrugsPageProps) {
   const [query, setQuery] = useState('');
   const [expanded, setExpanded] = useState<string | null>(null);
 
-  const summary = useMemo(() => buildSummary(tickets), [tickets]);
+  const summary = useMemo(() => buildSummary(tickets, drugs), [tickets, drugs]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -170,7 +178,7 @@ export function OutstandingDrugsPage({ tickets, onView }: OutstandingDrugsPagePr
                     className="grid w-full cursor-pointer grid-cols-[1fr_auto] items-center gap-x-[12px] gap-y-[6px] border-0 bg-transparent px-[20px] py-[13px] text-left hover:bg-[#f8fafc] min-[760px]:grid-cols-[1fr_100px_84px_110px_120px_44px]"
                   >
                     <div className="min-w-0">
-                      <div className="overflow-hidden text-ellipsis whitespace-nowrap text-[14.5px] font-semibold text-[#0f172a]">{drug.name}</div>
+                      <div className="overflow-hidden text-ellipsis whitespace-nowrap text-[14.5px] font-semibold" style={{ color: drugNameColor(drug.colorTag) }}>{drug.name}</div>
                       <div className="text-[12px] text-[#94a3b8]">{drug.ticketCount} ใบค้าง · {drug.patientCount} ราย · หน่วย{drug.unit || '-'}</div>
                     </div>
                     <div className="text-right min-[760px]:order-none order-4 col-span-2 min-[760px]:col-span-1">

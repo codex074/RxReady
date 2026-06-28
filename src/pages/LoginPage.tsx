@@ -50,7 +50,6 @@ export function LoginPage({
       <div className="flex flex-[1_1_440px] items-center justify-center px-[24px] py-[40px]">
         <div className="animate-fade-up w-full max-w-[400px]">
           <div className="mb-[28px] text-center">
-            <img src={uscLogo} alt="USC+" className="mb-[18px] h-[50px]" />
             <h2 className="mb-[6px] text-[24px] font-bold text-[#0f172a]">ระบบใบค้างยาออนไลน์</h2>
             <p className="text-[14px] text-[#64748b]">เข้าสู่ระบบสำหรับเจ้าหน้าที่ห้องยา</p>
           </div>

@@ -14,16 +14,20 @@ import { PublicStatusPage } from './pages/PublicStatusPage';
 import { PrintPage } from './pages/PrintPage';
 import { UserManagementPage } from './pages/UserManagementPage';
 import { DrugManagementPage } from './pages/DrugManagementPage';
+import { AuditLogPage } from './pages/AuditLogPage';
 import { getCurrentUser, signIn, signOut, updateSelfProfile, updateSelfPassword } from './services/authService';
 import { composeName } from './utils/name';
 import { EditProfileModal } from './components/EditProfileModal';
 import {
   createTicket,
+  deleteTicket,
   getPublicStatusByToken,
+  getTicketAuditHistory,
   listTickets,
   lookupTicketStatus,
   lookupTicketStatusByDate,
   updateStatus,
+  updateTicket,
 } from './services/ticketService';
 import {
   createManagedUser,
@@ -38,13 +42,16 @@ import {
   updateDrug,
   deleteDrug,
 } from './services/drugService';
+import { listAuditLogs } from './services/auditService';
 import type {
   StaffUser,
   Ticket,
+  TicketAuditLog,
   TicketForm,
   TicketStatus,
 } from './types/backorder';
 import type { Drug, CreateDrugInput, UpdateDrugInput } from './types/drug';
+import type { AuditLogEntry } from './types/audit';
 import type { AppRoute } from './types/navigation';
 import type {
   CreateManagedUserInput,
@@ -119,6 +126,10 @@ export function App() {
   const [lookupDate, setLookupDate] = useState(new Date().toISOString().slice(0, 10));
   const [lookupPhone, setLookupPhone] = useState('');
   const [qrUrl, setQrUrl] = useState('');
+  const [auditLogs, setAuditLogs] = useState<TicketAuditLog[]>([]);
+  const [auditLoading, setAuditLoading] = useState(false);
+  const [adminAuditLogs, setAdminAuditLogs] = useState<AuditLogEntry[]>([]);
+  const [adminAuditLoading, setAdminAuditLoading] = useState(false);
 
   const activeTicket = tickets.find((ticket) => ticket.id === activeId) || null;
 
@@ -201,6 +212,13 @@ export function App() {
       }
       void loadUsers();
     }
+    if (nextRoute === 'audit') {
+      if (user.role !== 'admin') {
+        void showError('ไม่มีสิทธิ์เข้าถึง', 'เฉพาะผู้ดูแลระบบเท่านั้น');
+        return;
+      }
+      void loadAdminAuditLogs();
+    }
     if (nextRoute === 'drugs') {
       if (user.role !== 'admin' && user.role !== 'sub-admin') {
         void showError('ไม่มีสิทธิ์เข้าถึง', 'เฉพาะผู้ดูแลระบบและผู้ดูแลรองเท่านั้น');
@@ -208,7 +226,11 @@ export function App() {
       }
       void loadDrugs();
     }
-    if (ticketId) setActiveId(ticketId);
+    if (nextRoute === 'outstanding') void loadDrugs();
+    if (ticketId) {
+      setActiveId(ticketId);
+      if (nextRoute === 'detail') void loadTicketAudit(ticketId);
+    }
     setSidebarOpen(false);
     setRoute(nextRoute);
     if (nextRoute !== 'public' && window.location.pathname !== '/') {
@@ -223,6 +245,34 @@ export function App() {
     const data = await listTickets();
     setTickets(data);
     return data;
+  }
+
+  async function loadTicketAudit(ticketId: string): Promise<void> {
+    if (!isSupabaseConfigured) {
+      setAuditLogs([]);
+      return;
+    }
+    try {
+      setAuditLoading(true);
+      setAuditLogs(await getTicketAuditHistory(ticketId));
+    } catch (error) {
+      setAuditLogs([]);
+      await showError('โหลดประวัติการทำรายการไม่สำเร็จ', error);
+    } finally {
+      setAuditLoading(false);
+    }
+  }
+
+  async function loadAdminAuditLogs(): Promise<void> {
+    if (!isSupabaseConfigured || user.role !== 'admin') return;
+    try {
+      setAdminAuditLoading(true);
+      setAdminAuditLogs(await listAuditLogs());
+    } catch (error) {
+      await showError('โหลด Audit Log ไม่สำเร็จ', error);
+    } finally {
+      setAdminAuditLoading(false);
+    }
   }
 
   async function loadUsers(): Promise<void> {
@@ -620,6 +670,108 @@ export function App() {
     }
   }
 
+  function startEditTicket(ticketId: string) {
+    const ticket = tickets.find((item) => item.id === ticketId);
+    if (!ticket) return;
+    setForm({
+      hn: ticket.hn === '-' ? '' : ticket.hn,
+      name: ticket.name,
+      phone: ticket.phone,
+      note: ticket.note,
+      items: ticket.items.map((item) => ({
+        id: item.id,
+        name: item.name,
+        qty: String(item.qty),
+        unit: item.unit,
+        note: item.note,
+      })),
+    });
+    navigate('edit', ticket.id);
+  }
+
+  async function handleUpdateTicket() {
+    if (!activeTicket) return;
+    const validItems = form.items.filter((item) => item.name.trim());
+    const phoneDigits = form.phone.replace(/\D/g, '');
+    if (!form.name.trim()) {
+      await showWarning('ข้อมูลไม่ครบถ้วน', 'กรุณากรอกชื่อ-สกุลผู้ป่วย');
+      return;
+    }
+    if (phoneDigits.length !== 10) {
+      await showWarning('เบอร์โทรศัพท์ไม่ถูกต้อง', 'กรุณากรอกเบอร์โทรศัพท์ให้ครบ 10 หลัก');
+      return;
+    }
+    if (!validItems.length) {
+      await showWarning('ยังไม่มีรายการยา', 'กรุณาเพิ่มรายการยาที่ค้างอย่างน้อย 1 รายการ');
+      return;
+    }
+    if (validItems.some((item) => Number(item.qty) <= 0 || !item.unit.trim())) {
+      await showWarning('รายการยาไม่ครบถ้วน', 'กรุณากรอกจำนวนและหน่วยของรายการยาทุกแถว');
+      return;
+    }
+
+    const confirmation = await Swal.fire({
+      icon: 'question',
+      title: `บันทึกการแก้ไข ${activeTicket.no}?`,
+      text: 'ระบบจะบันทึกผู้แก้ไขและข้อมูลก่อน–หลังไว้ใน Audit Log',
+      showCancelButton: true,
+      confirmButtonColor: '#2563eb',
+      cancelButtonColor: '#94a3b8',
+      confirmButtonText: 'บันทึกการแก้ไข',
+      cancelButtonText: 'ยกเลิก',
+      reverseButtons: true,
+    });
+    if (!confirmation.isConfirmed) return;
+
+    try {
+      setLoading(true);
+      if (isSupabaseConfigured) {
+        const existingItemIds = new Set(activeTicket.items.map((item) => item.id));
+        await updateTicket({
+          ticketId: activeTicket.id,
+          patientName: form.name.trim(),
+          hn: form.hn.trim(),
+          phone: form.phone.trim(),
+          note: form.note.trim(),
+          items: validItems.map((item) => ({
+            itemId: existingItemIds.has(item.id) ? item.id : undefined,
+            drugName: item.name.trim(),
+            qty: Number(item.qty),
+            unit: item.unit.trim(),
+            note: item.note.trim(),
+          })),
+        });
+        await reloadTickets();
+      } else {
+        setTickets((current) => current.map((ticket) => ticket.id === activeTicket.id
+          ? {
+              ...ticket,
+              hn: form.hn.trim() || '-',
+              name: form.name.trim(),
+              phone: form.phone.trim(),
+              note: form.note.trim(),
+              updatedAt: Date.now(),
+              items: validItems.map((item) => ({
+                id: item.id,
+                name: item.name.trim(),
+                qty: Number(item.qty),
+                unit: item.unit.trim(),
+                note: item.note.trim(),
+                status: ticket.status,
+              })),
+            }
+          : ticket));
+      }
+      setForm(blankForm());
+      showToast('บันทึกการแก้ไขสำเร็จ');
+      navigate('detail', activeTicket.id);
+    } catch (error) {
+      await showError('บันทึกการแก้ไขไม่สำเร็จ', error);
+    } finally {
+      setLoading(false);
+    }
+  }
+
   async function handleStatusChange(status: TicketStatus) {
     if (!activeTicket) return;
     const statusText = status === 'cancelled' ? 'ยกเลิกใบค้างยา' : undefined;
@@ -660,6 +812,7 @@ export function App() {
       if (isSupabaseConfigured) {
         await updateStatus(activeTicket.id, status, result.value || undefined);
         await reloadTickets();
+        await loadTicketAudit(activeTicket.id);
       } else {
         setTickets((current) =>
           current.map((ticket) =>
@@ -678,6 +831,36 @@ export function App() {
       showToast('อัปเดตสถานะสำเร็จ');
     } catch (error) {
       await showError('อัปเดตสถานะไม่สำเร็จ', error);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleDeleteTicket(ticket: Ticket | null = activeTicket) {
+    if (!ticket || user.role !== 'admin') return;
+    const result = await Swal.fire({
+      icon: 'warning',
+      title: `ลบใบค้างยา ${ticket.no}?`,
+      text: 'ใบค้างยาและรายการยาภายในจะถูกลบถาวร แต่ประวัติการลบจะยังถูกเก็บใน Audit Log',
+      showCancelButton: true,
+      confirmButtonColor: '#e11d48',
+      cancelButtonColor: '#94a3b8',
+      confirmButtonText: 'ลบถาวร',
+      cancelButtonText: 'ยกเลิก',
+      reverseButtons: true,
+    });
+    if (!result.isConfirmed) return;
+
+    try {
+      setLoading(true);
+      if (isSupabaseConfigured) await deleteTicket(ticket.id);
+      setTickets((current) => current.filter((item) => item.id !== ticket.id));
+      setAuditLogs([]);
+      if (activeId === ticket.id) setActiveId(null);
+      showToast('ลบใบค้างยาสำเร็จ');
+      navigate('list');
+    } catch (error) {
+      await showError('ลบใบค้างยาไม่สำเร็จ', error);
     } finally {
       setLoading(false);
     }
@@ -780,11 +963,13 @@ export function App() {
       <StaffShell route={route} user={user} sidebarOpen={sidebarOpen} onNavigate={navigate} onToggleSidebar={() => setSidebarOpen((open) => !open)} onCloseSidebar={() => setSidebarOpen(false)} onLogout={() => void handleLogout()} onEditProfile={() => setShowEditProfile(true)}>
         {route === 'dashboard' && <DashboardPage tickets={tickets} onCreate={() => navigate('create')} onList={(status = 'all') => { setStatusFilter(status); navigate('list'); }} onView={(id) => navigate('detail', id)} onPrint={(id) => navigate('print', id)} />}
         {route === 'create' && <CreateTicketPage form={form} loading={loading} drugs={drugs} onFieldChange={(field, value) => setForm((current) => ({ ...current, [field]: value }))} onItemChange={(itemId, field, value) => setForm((current) => ({ ...current, items: current.items.map((item) => item.id === itemId ? { ...item, [field]: value } : item) }))} onItemSelect={(itemId, drug) => setForm((current) => ({ ...current, items: current.items.map((item) => item.id === itemId ? { ...item, name: drug.name, unit: drug.unit || item.unit } : item) }))} onAddItem={() => setForm((current) => ({ ...current, items: [...current.items, newFormItem()] }))} onRemoveItem={(id) => void handleRemoveItem(id)} onCancel={() => void handleCancelCreate()} onSave={() => void handleCreateTicket()} />}
-        {route === 'list' && <TicketListPage tickets={tickets} query={query} statusFilter={statusFilter} onQueryChange={setQuery} onStatusChange={setStatusFilter} onCreate={() => navigate('create')} onView={(id) => navigate('detail', id)} onPrint={(id) => navigate('print', id)} />}
-        {route === 'outstanding' && <OutstandingDrugsPage tickets={tickets} onView={(id) => navigate('detail', id)} />}
-        {route === 'detail' && activeTicket && <TicketDetailPage ticket={activeTicket} loading={loading} onBack={() => navigate('list')} onPrint={() => navigate('print', activeTicket.id)} onStatusChange={(status) => void handleStatusChange(status)} />}
+        {route === 'edit' && activeTicket && <CreateTicketPage mode="edit" form={form} loading={loading} drugs={drugs} onFieldChange={(field, value) => setForm((current) => ({ ...current, [field]: value }))} onItemChange={(itemId, field, value) => setForm((current) => ({ ...current, items: current.items.map((item) => item.id === itemId ? { ...item, [field]: value } : item) }))} onItemSelect={(itemId, drug) => setForm((current) => ({ ...current, items: current.items.map((item) => item.id === itemId ? { ...item, name: drug.name, unit: drug.unit || item.unit } : item) }))} onAddItem={() => setForm((current) => ({ ...current, items: [...current.items, newFormItem()] }))} onRemoveItem={(id) => void handleRemoveItem(id)} onCancel={() => { setForm(blankForm()); navigate('detail', activeTicket.id); }} onSave={() => void handleUpdateTicket()} />}
+        {route === 'list' && <TicketListPage tickets={tickets} query={query} statusFilter={statusFilter} onQueryChange={setQuery} onStatusChange={setStatusFilter} onCreate={() => navigate('create')} onView={(id) => navigate('detail', id)} onEdit={startEditTicket} onDelete={(id) => void handleDeleteTicket(tickets.find((ticket) => ticket.id === id) || null)} onPrint={(id) => navigate('print', id)} canDelete={user.role === 'admin'} />}
+        {route === 'outstanding' && <OutstandingDrugsPage tickets={tickets} drugs={drugs} onView={(id) => navigate('detail', id)} />}
+        {route === 'detail' && activeTicket && <TicketDetailPage ticket={activeTicket} loading={loading} auditLoading={auditLoading} auditLogs={auditLogs} canDelete={user.role === 'admin'} onBack={() => navigate('list')} onPrint={() => navigate('print', activeTicket.id)} onDelete={() => void handleDeleteTicket(activeTicket)} onStatusChange={(status) => void handleStatusChange(status)} />}
         {route === 'users' && user.role === 'admin' && <UserManagementPage users={managedUsers} loading={usersLoading} currentUserId={user.id} onRefresh={loadUsers} onCreate={handleCreateUser} onUpdate={handleUpdateUser} onToggleActive={(managedUser) => void handleToggleUserActive(managedUser)} onResetPassword={(managedUser) => void handleResetUserPassword(managedUser)} />}
         {route === 'drugs' && (user.role === 'admin' || user.role === 'sub-admin') && <DrugManagementPage drugs={drugs} loading={drugsLoading} onRefresh={() => void loadDrugs()} onCreate={handleCreateDrug} onUpdate={handleUpdateDrug} onDelete={(drug) => void handleDeleteDrug(drug)} />}
+        {route === 'audit' && user.role === 'admin' && <AuditLogPage logs={adminAuditLogs} loading={adminAuditLoading} onRefresh={() => void loadAdminAuditLogs()} />}
       </StaffShell>
       {showEditProfile && (
         <EditProfileModal
