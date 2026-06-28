@@ -1,7 +1,6 @@
 import type { Ticket } from '../types/backorder';
 import { uscLogo } from '../uiAssets';
 import { formatThaiDate } from '../utils/format';
-import { publicStatusUrl } from '../utils/qr';
 import { Icon } from '../components/Icon';
 
 type PrintPageProps = {
@@ -12,7 +11,6 @@ type PrintPageProps = {
 };
 
 export function PrintPage({ ticket, qrUrl, onBack, onPublicView }: PrintPageProps) {
-  const statusUrl = publicStatusUrl(ticket.token);
   return (
     <div className="print-wrap flex min-h-screen flex-col items-center bg-[#e8eef6] px-[16px] py-[26px]">
       <div className="no-print mb-[18px] flex w-full max-w-[520px] gap-[10px]">
@@ -82,8 +80,7 @@ export function PrintPage({ ticket, qrUrl, onBack, onPublicView }: PrintPageProp
           </div>
           <div>
             <div className="text-[11.5px] font-semibold text-[#334155]">สแกน QR เพื่อตรวจสอบสถานะยา</div>
-            <div className="mt-[4px] break-all text-[10px] text-[#94a3b8]">{statusUrl.replace(/^https?:\/\//, '')}</div>
-            <div className="mt-[10px] text-[10.5px] text-[#64748b]">เมื่อยามาถึงเภสัชกรจะแจ้งให้ท่านทราบ<br />กรุณาแสดงใบนี้เมื่อมารับยา</div>
+            <div className="mt-[10px] text-[10.5px] text-[#64748b]">กรุณาแสดงใบนี้เมื่อมารับยา</div>
           </div>
         </div>
 
