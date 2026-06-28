@@ -1,528 +1,316 @@
-# AGENTS.md — MedBackOrder Backend Integration
+# AGENTS.md — RxReady (USC+ ระบบใบค้างรับยา)
 
-## Mission
-
-โปรเจคนี้มี **Frontend Prototype จาก Claude Design อยู่แล้ว**
-หน้าที่ของ AI Agent คือ **สร้าง codebase/backend/API ให้เชื่อมกับ frontend เดิมให้ใช้งานจริง**
-
-เป้าหมายสำคัญที่สุด:
-
-> รักษาหน้าตาเว็บเดิมให้เหมือน prototype เดิม 100%
-
-ห้าม redesign, ห้ามเปลี่ยน layout, ห้ามเปลี่ยนสี, ห้ามเปลี่ยน spacing, ห้ามเปลี่ยน animation, ห้ามเปลี่ยน font, ห้ามเปลี่ยน visual hierarchy และห้ามสร้าง UI ใหม่ทับของเดิม
-
-ให้แก้เฉพาะส่วนที่จำเป็นต่อการเชื่อม backend เช่น state, event handler, service call, data fetching, validation, loading state และ error state เท่านั้น
+> **อ่านก่อนทำอะไรทั้งหมด**
+> ไฟล์นี้คือ source of truth สำหรับ AI Agent ทุกตัวที่ทำงานใน repository นี้
 
 ---
 
-## Project Summary
+## ⛔ กฎสำคัญที่สุด — ห้ามละเมิดโดยเด็ดขาด
 
-ชื่อระบบ: **MedBackOrder**
-
-ระบบสำหรับห้องยาใช้บันทึกใบค้างยาและสร้าง QR Code ให้ผู้ป่วยสแกนดูสถานะยาของตนเอง
-
-Scope ปัจจุบัน:
-
-- เจ้าหน้าที่ login
-- สร้างใบค้างยา
-- บันทึกข้อมูลผู้ป่วย
-- บันทึกรายการยาที่ค้าง
-- สร้างเลขที่ใบค้างยาอัตโนมัติ
-- สร้าง public token สำหรับ QR Code
-- พิมพ์ใบค้างยา/QR Code
-- ผู้ป่วยสแกน QR เพื่อดูสถานะยา
-- ผู้ป่วยค้นหาด้วยเลขที่ใบค้างยา + เบอร์โทร 4 หลักท้าย
-- เจ้าหน้าที่อัปเดตสถานะยา
-- เก็บ audit log
-
-Out of scope:
-
-- ห้ามทำ SMS
-- ห้ามทำ SMSMKT
-- ห้ามทำ LINE notification
-- ห้ามทำระบบแจ้งเตือนใด ๆ
-- ห้ามใช้ Firebase
-
----
-
-## Tech Stack
-
-ใช้ stack นี้เท่านั้น:
-
-- Frontend: ใช้ frontend prototype เดิมที่มีอยู่แล้ว
-- Backend Platform: Supabase
-- Database: PostgreSQL
-- API: Supabase Data API / PostgREST
-- Auth: Supabase Auth
-- Security: Row Level Security (RLS)
-- Server Logic: PostgreSQL RPC หรือ Supabase Edge Functions เฉพาะจุดที่จำเป็น
-
-ห้ามใช้:
-
-- Firebase
-- Firestore
-- Firebase Auth
-- Firebase Functions
-- Supabase Realtime ถ้าไม่จำเป็น
-- SMS/SMSMKT/LINE
-
----
-
-## UI Preservation Rules
-
-Frontend เดิมคือ source of truth ด้านหน้าตา
-
-ห้ามเปลี่ยน:
-
-- HTML structure ที่มีผลต่อหน้าตา
-- CSS class / Tailwind class เดิม
-- สี
-- spacing
-- border radius
-- shadow
-- animation
-- icon
-- font
-- layout
-- component hierarchy
-- responsive behavior
-
-อนุญาตให้เปลี่ยนเฉพาะ:
-
-- mock data → real data
-- local state → backend state
-- fake submit → real API call
-- fake search/filter → real query
-- fake status update → real update
-- เพิ่ม loading/error เฉพาะจำเป็น และต้องกลมกลืนกับ UI เดิม
-- เพิ่ม service/hook/type โดยไม่กระทบ visual
-
-ถ้าจำเป็นต้องแก้ component เดิม ให้แก้เฉพาะ logic ด้านใน component ห้ามแก้ visual class ถ้าไม่จำเป็นจริง ๆ
-
----
-
-## Allowed Status Values
-
-ใช้สถานะได้เฉพาะ 4 ค่านี้:
-
-```ts
-preparing  // กำลังเตรียมยา
-ready      // พร้อมรับยา
-picked_up  // รับยาแล้ว
-cancelled  // ยกเลิก
+```
+ห้ามแก้ไข code เดิมที่มีอยู่แล้วในทุกกรณี
+จนกว่าจะได้รับอนุญาตอย่างชัดเจนจากผู้ใช้
 ```
 
-ห้ามใช้:
+หมายความว่า:
 
-```txt
-pending
-waiting
-รอจัดหา
-รอยาเข้า
+- **ห้าม** แก้ไขไฟล์ที่มีอยู่แล้ว ไม่ว่าจะเป็น `.tsx`, `.ts`, `.sql`, `.json`, `.html`, `.svg` หรือไฟล์ใดก็ตาม
+- **ห้าม** refactor, rename, หรือ restructure code ที่ยังไม่ได้รับคำสั่ง
+- **ห้าม** "ปรับปรุง" หรือ "cleanup" โดยที่ไม่ได้ถูกขอ
+- **ห้าม** เปลี่ยน UI, layout, สี, spacing, animation, font หรือ visual ใด ๆ โดยไม่ได้รับอนุญาต
+- **ห้าม** เพิ่ม dependency ใหม่โดยไม่ได้รับอนุญาต
+
+ถ้าเห็นว่ามีปัญหาหรือจุดที่ควรปรับปรุง → **แจ้งผู้ใช้ก่อน รอการอนุมัติ แล้วค่อยแก้**
+
+---
+
+## สถานะปัจจุบันของโปรเจกต์
+
+ระบบนี้ **พัฒนาเสร็จแล้วและใช้งาน production** แล้ว
+
+- Frontend + Backend เชื่อมกันสมบูรณ์
+- Supabase migrations ทั้งหมด 11 ไฟล์ถูก apply แล้ว
+- Deploy บน Vercel ที่ `usc-rxready.vercel.app`
+
+**งาน AI Agent ใน repo นี้คือ**: เพิ่มฟีเจอร์ใหม่ / แก้ bug / ปรับปรุงตามที่ได้รับคำสั่ง เท่านั้น
+
+---
+
+## Project Overview
+
+| รายการ | ค่า |
+|--------|-----|
+| ชื่อระบบ | **RxReady — ระบบใบค้างรับยา USC+** |
+| หน่วยงาน | กลุ่มงานเภสัชกรรม โรงพยาบาลอุตรดิตถ์ กระทรวงสาธารณสุข |
+| ผู้ใช้หลัก | เจ้าหน้าที่ห้องยา และผู้ป่วย |
+| ภาษา UI | ภาษาไทยทั้งหมด |
+| Deploy | Vercel (SPA) |
+| Backend | Supabase (PostgreSQL + Auth + RLS) |
+
+---
+
+## Tech Stack (ที่ใช้จริงอยู่)
+
+```
+Frontend                 Backend (Supabase)        Build
+──────────────────       ──────────────────        ──────────────
+React 19                 PostgreSQL                Vite 7
+TypeScript 5.9           Row Level Security        Tailwind CSS 4
+SweetAlert2 11           Supabase Auth             @tailwindcss/vite
+QRCode.js                pgcrypto
+xlsx                     pg functions / RPC
 ```
 
-เมื่อสร้างใบค้างยาใหม่ ให้ status เริ่มต้นเป็น:
+**ห้ามเพิ่ม library ใหม่นอกจากนี้โดยไม่ได้รับอนุมัติก่อน**
 
-```ts
-status = "preparing"
+---
+
+## โครงสร้างไฟล์ (สรุป)
+
+```
+usc-bod/
+├── public/favicon.svg               # Favicon (mortar & pestle + green cross)
+├── assets/
+│   ├── usc-logo.png / utth-logo.png / moph-logo.png
+│   └── user.json                    # ข้อมูล seed ผู้ใช้ 109 คน
+├── src/
+│   ├── lib/supabase.ts              # Supabase client — sessionStorage session
+│   ├── services/
+│   │   ├── authService.ts           # login / logout / profile
+│   │   ├── ticketService.ts         # CRUD ใบค้างรับยา
+│   │   ├── drugService.ts           # CRUD คลังยา
+│   │   ├── userService.ts           # admin จัดการผู้ใช้
+│   │   └── auditService.ts          # ดึง audit log
+│   ├── pages/                       # 12 หน้า (อย่าเพิ่ม/ลบโดยไม่ได้รับอนุญาต)
+│   ├── components/                  # StaffShell, StatusBadge, EditProfileModal, Icon
+│   ├── types/                       # backorder, database, drug, user, audit, navigation
+│   ├── utils/                       # name.ts, qr.ts, status.ts
+│   └── App.tsx                      # Root + routing ทั้งหมด
+├── supabase/migrations/             # 001–011 (อย่า drop/alter โดยไม่ได้รับอนุญาต)
+├── index.html
+├── vercel.json
+└── AGENTS.md  ← ไฟล์นี้
 ```
 
 ---
 
-## Required Supabase Tables
+## Database Schema (สถานะปัจจุบัน)
 
-### 1. profiles
-
-ใช้เก็บข้อมูลเจ้าหน้าที่ที่ผูกกับ Supabase Auth
+### ตาราง profiles
 
 ```sql
 profiles (
-  id uuid primary key references auth.users(id),
-  username text unique not null,
-  display_name text not null,
-  role text not null check (role in ('admin', 'pharmacist', 'staff', 'viewer')),
-  is_active boolean not null default true,
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
+  id          uuid primary key references auth.users(id),
+  username    text unique not null,          -- ชื่อผู้ใช้ lowercase
+  prefix      text not null default '',      -- คำนำหน้า เช่น ภญ., นาย
+  f_name      text not null default '',      -- ชื่อจริง
+  l_name      text not null default '',      -- นามสกุล
+  role        text not null check (role in ('admin', 'sub-admin', 'staff')),
+  is_active   boolean not null default true,
+  created_at  timestamptz not null default now(),
+  updated_at  timestamptz not null default now()
 )
 ```
 
-### Authentication
+> ⚠️ roles ที่ถูกต้องคือ `admin`, `sub-admin`, `staff` เท่านั้น
+> (`pharmacist` และ `viewer` ถูก migrate ออกไปแล้วใน migration 008)
 
-- หน้า login ใช้ `username` และรหัสผ่าน/PIN เท่านั้น ห้ามแสดงหรือร้องขอ email
-- Supabase Auth ยังใช้ email identity ภายในรูปแบบ `{username}@usc-rxready.vercel.app` แต่ห้ามแสดงค่านี้ใน UI
-- ระบบต้องไม่ส่ง email, magic link หรือ OTP
-- ห้ามเปิดหน้า sign-up สาธารณะ เจ้าหน้าที่ใหม่ต้องสร้างโดย admin เท่านั้น
-- trigger สร้าง profile ต้องกำหนด role เริ่มต้นเป็น `viewer` เสมอ และห้ามเชื่อถือ role จาก user metadata
-- การเลื่อนสิทธิ์เป็น `admin`, `pharmacist` หรือ `staff` ต้องทำผ่าน admin workflow หรือ SQL ที่ได้รับอนุญาต
-- ห้าม hardcode หรือ commit username/password/PIN จริงลง source code, migration, `.env.example` หรือเอกสารใน repository
-- รหัส PIN สั้นมีความเสี่ยงต่อ brute force; production ต้องจำกัดอัตราการ login และเปลี่ยนเป็นรหัสผ่านอย่างน้อย 8 ตัวเมื่อทำได้
-
-### 2. backorder_tickets
-
-ตารางหลักของใบค้างยา
+### ตาราง backorder_tickets
 
 ```sql
 backorder_tickets (
-  id uuid primary key default gen_random_uuid(),
-  ticket_no text unique not null,
-  public_token text unique not null,
-
+  id           uuid primary key,
+  ticket_no    text unique not null,   -- รูปแบบ BO-YYYYMMDD-NNNN
+  public_token text unique not null,   -- ใช้ใน QR URL เท่านั้น
   patient_name text not null,
-  hn text,
-  phone text not null,
-  phone_last4 text not null,
-
-  status text not null check (status in ('preparing', 'ready', 'picked_up', 'cancelled')),
-  note text,
-
-  created_by uuid references profiles(id),
-  updated_by uuid references profiles(id),
-
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now(),
-
-  ready_at timestamptz,
-  ready_by uuid references profiles(id),
-
+  hn           text,
+  phone        text not null,
+  phone_last4  text not null,
+  status       text not null check (status in ('preparing','ready','picked_up','cancelled')),
+  note         text,
+  created_by   uuid references profiles(id),
+  updated_by   uuid references profiles(id),
+  created_at   timestamptz not null default now(),
+  updated_at   timestamptz not null default now(),
+  ready_at     timestamptz,
+  ready_by     uuid references profiles(id),
   picked_up_at timestamptz,
   picked_up_by uuid references profiles(id),
-
   cancelled_at timestamptz,
   cancelled_by uuid references profiles(id),
   cancel_reason text
 )
 ```
 
-### 3. backorder_items
-
-รายการยาที่ค้างในแต่ละใบ
+### ตาราง backorder_items
 
 ```sql
 backorder_items (
-  id uuid primary key default gen_random_uuid(),
+  id        uuid primary key,
   ticket_id uuid not null references backorder_tickets(id) on delete cascade,
   drug_name text not null,
-  qty numeric not null check (qty > 0),
-  unit text not null,
-  note text,
+  qty       numeric not null check (qty > 0),
+  unit      text not null,
+  note      text,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 )
 ```
 
-### 4. audit_logs
+### ตาราง drugs
 
-เก็บประวัติการทำรายการ
+```sql
+drugs (
+  id           uuid primary key,
+  name         text not null,
+  generic_name text,
+  strength     text,
+  unit         text,
+  price        numeric,
+  color_tag    text,
+  is_active    boolean not null default true,
+  created_at   timestamptz not null default now(),
+  updated_at   timestamptz not null default now()
+)
+-- มียาประมาณ 1,300+ รายการ seed จาก migration 005
+-- GIN index สำหรับ full-text search
+```
+
+### ตาราง audit_logs
 
 ```sql
 audit_logs (
-  id uuid primary key default gen_random_uuid(),
-  ticket_id uuid references backorder_tickets(id) on delete set null,
-  ticket_no text,
-  action text not null,
+  id         uuid primary key,
+  ticket_id  uuid references backorder_tickets(id) on delete set null,
+  ticket_no  text,
+  action     text not null,
   old_status text,
   new_status text,
-  actor_id uuid,
-  actor_type text not null check (actor_type in ('staff', 'patient', 'system')),
-  detail jsonb,
+  actor_id   uuid,
+  actor_type text not null check (actor_type in ('staff','patient','system')),
+  detail     jsonb,
   created_at timestamptz not null default now()
 )
 ```
 
 ---
 
-## Required Backend Operations
+## Roles & Permissions
 
-สร้าง backend operations ต่อไปนี้ด้วย RPC หรือ Edge Functions ตามความเหมาะสม
+| Role | จัดการผู้ใช้ | จัดการยา | ใบค้างรับยา | Audit Log |
+|------|:-----------:|:--------:|:-----------:|:---------:|
+| `admin` | ✅ | ✅ | ✅ สร้าง/แก้/ลบ | ✅ ดูได้ |
+| `sub-admin` | ❌ | ✅ | ✅ สร้าง/แก้ | ❌ |
+| `staff` | ❌ | ❌ (ดูได้) | ✅ สร้าง/แก้ | ❌ |
 
-### admin-users Edge Function
-
-ใช้สำหรับหน้าจัดการผู้ใช้ และเรียกได้เฉพาะ profile ที่ `role = 'admin'` และ `is_active = true`
-
-ต้องรองรับ:
-
-- list profiles
-- create Auth user ด้วย internal email, auto confirm และสร้าง profile
-- update `display_name`, `role`, `is_active`
-- reset password/PIN
-- ห้ามแก้ username หลังสร้าง เพราะผูกกับ internal Auth identity
-- ห้าม admin ลดสิทธิ์หรือปิดบัญชีตนเอง
-- ห้ามลดสิทธิ์หรือปิด admin คนสุดท้าย
-- ต้องตรวจ JWT และ role ฝั่ง Edge Function ทุก request ห้ามเชื่อถือ guard ฝั่ง frontend อย่างเดียว
-- ใช้ `SUPABASE_SERVICE_ROLE_KEY` เฉพาะใน Edge Function environment ห้ามส่งกลับหรือ bundle ไป frontend
-
-### create_backorder_ticket
-
-ใช้สร้างใบค้างยาใหม่
-
-Input:
-
-```ts
-{
-  patientName: string
-  hn?: string
-  phone: string
-  items: Array<{
-    drugName: string
-    qty: number
-    unit: string
-    note?: string
-  }>
-  note?: string
-}
-```
-
-ต้องทำ:
-
-- ตรวจว่า user login และ active
-- ตรวจ role เป็น admin/pharmacist/staff
-- validate ข้อมูล
-- สร้าง ticket_no รูปแบบ `BO-YYYYMMDD-XXXX`
-- สร้าง public_token ที่เดายาก
-- set status = `preparing`
-- insert ticket
-- insert items
-- insert audit log action = `create_ticket`
-- return ticket id, ticket_no, public_token, statusUrl
-
-### update_ticket_status
-
-ใช้เปลี่ยนสถานะ
-
-Input:
-
-```ts
-{
-  ticketId: string
-  status: 'preparing' | 'ready' | 'picked_up' | 'cancelled'
-  reason?: string
-}
-```
-
-ต้องทำ:
-
-- ตรวจว่า user login และ active
-- ตรวจ role เป็น admin/pharmacist/staff
-- ห้ามรับ status นอกเหนือจาก 4 ค่าที่กำหนด
-- ถ้า ready ให้ set ready_at, ready_by
-- ถ้า picked_up ให้ set picked_up_at, picked_up_by
-- ถ้า cancelled ให้ set cancelled_at, cancelled_by, cancel_reason
-- update updated_at, updated_by
-- insert audit log
-
-### get_public_status_by_token
-
-ใช้สำหรับหน้า QR public status
-
-Input:
-
-```ts
-{
-  token: string
-}
-```
-
-ไม่ต้อง login
-
-Output ต้องจำกัดข้อมูล:
-
-```ts
-{
-  found: boolean
-  ticketNo?: string
-  status?: 'preparing' | 'ready' | 'picked_up' | 'cancelled'
-  statusText?: string
-  itemsCount?: number
-  updatedAt?: string
-  readyAt?: string | null
-  pickedUpAt?: string | null
-  message?: string
-}
-```
-
-ห้ามส่งออก:
-
-- patient_name
-- hn
-- phone
-- phone_last4
-- รายละเอียดชื่อยา
-- note ภายใน
-- created_by
-- updated_by
-
-### lookup_ticket_status
-
-ใช้สำหรับค้นหาด้วยเลขใบค้างยา + เบอร์โทร 4 หลักท้าย
-
-Input:
-
-```ts
-{
-  ticketNo: string
-  phoneLast4: string
-}
-```
-
-ไม่ต้อง login
-
-ต้อง match ทั้ง ticket_no และ phone_last4
-
-Output จำกัดข้อมูลเหมือน `get_public_status_by_token`
+Permission บังคับโดย PostgreSQL RLS functions:
+- `is_active_staff()` — admin, sub-admin, staff ที่ is_active = true
+- `is_admin()` — admin ที่ is_active = true
+- `is_drug_manager()` — admin หรือ sub-admin ที่ is_active = true
 
 ---
 
-## Frontend Integration Files
+## Auth System
 
-ให้สำรวจ codebase ก่อน แล้วสร้าง/แก้ไฟล์ตามโครงสร้างจริงของโปรเจค
-
-ไฟล์ที่คาดว่าจะต้องมี:
-
-```txt
-src/lib/supabase.ts
-src/services/authService.ts
-src/services/ticketService.ts
-src/types/backorder.ts
-src/types/database.ts
-src/hooks/useTickets.ts
-src/hooks/useTicketActions.ts
-src/utils/status.ts
-src/utils/qr.ts
-supabase/migrations/001_init.sql
-.env.example
-```
-
-ถ้ามีไฟล์เดิมอยู่แล้ว ให้แก้ไฟล์เดิมแทนการสร้างซ้ำ
+- Login ด้วย **username + PIN** เท่านั้น
+- Internal Supabase email identity: `{username}@usc-rxready.vercel.app` — **ห้ามแสดงใน UI**
+- Internal password format: `RxReady#{PIN}` — **ห้าม hardcode ใน source code**
+- Session เก็บใน **`sessionStorage`** (ปิด browser = logout อัตโนมัติ)
+- ห้ามมี sign-up สาธารณะ — เจ้าหน้าที่ใหม่สร้างโดย admin เท่านั้น
+- Default role หลังสร้าง user = `staff` (กำหนดใน trigger ฝั่ง DB)
 
 ---
 
-## Frontend Pages To Connect
+## Routing
 
-ให้ map จากหน้าเดิมของ prototype ห้ามสร้าง route ใหม่ทับ ถ้ามี route อยู่แล้วให้ใช้ของเดิม
+| Route | Component | Auth |
+|-------|-----------|------|
+| `/` | LoginPage หรือ Dashboard (ถ้า session ยังอยู่) | — |
+| `/` (authed) | DashboardPage | staff ขึ้นไป |
+| `/status/:token` | PublicStatusPage | ไม่ต้อง login |
 
-ต้องเชื่อมอย่างน้อย:
-
-- Login page → Supabase Auth
-- Dashboard → list tickets, count by status
-- Create ticket page → create_backorder_ticket
-- Ticket detail page → update_ticket_status
-- Print QR page → ใช้ public_token สร้าง QR URL
-- Public status page `/status/:token` → get_public_status_by_token
-- Lookup page → lookup_ticket_status
-- User management page → admin-users Edge Function และแสดงเฉพาะ role admin
+`vercel.json` redirect ทุก path → `/index.html` สำหรับ SPA
 
 ---
 
-## QR Rule
+## Status Values
 
-QR URL ต้องใช้ public token เท่านั้น
+ใช้ได้เฉพาะ 4 ค่า:
 
-ถูกต้อง:
-
-```txt
-/status/{public_token}
+```
+preparing   กำลังเตรียมยา   (สถานะเริ่มต้น)
+ready       พร้อมรับยา
+picked_up   รับยาแล้ว
+cancelled   ยกเลิก
 ```
 
-ห้ามใช้:
+ห้ามใช้: `pending`, `waiting`, `รอจัดหา`, `รอยาเข้า`
 
-```txt
-/status/{ticket_no}
+---
+
+## QR Code Rule
+
+URL ใน QR Code ต้องใช้ `public_token` เสมอ:
+
 ```
-
-เหตุผล: ticket_no เดาง่ายเกินไป
+✅ /status/{public_token}
+❌ /status/{ticket_no}      ← ticket_no เดาได้ง่ายเกินไป
+```
 
 ---
 
 ## Environment Variables
 
-สร้าง `.env.example`
-
 ```env
-VITE_SUPABASE_URL=
-VITE_SUPABASE_ANON_KEY=
-VITE_APP_BASE_URL=
+VITE_SUPABASE_URL=https://xxxxxxxxxxxx.supabase.co
+VITE_SUPABASE_ANON_KEY=eyJ...
+VITE_APP_BASE_URL=https://usc-rxready.vercel.app
 ```
 
-ห้ามใส่ service role key ใน frontend
+- **ห้าม** ใส่ `SUPABASE_SERVICE_ROLE_KEY` ใน frontend ทุกกรณี
+- **ห้าม** commit `.env` จริงลง repository
 
 ---
 
 ## Security Rules
 
-ต้องเปิด RLS ทุกตารางหลัก
-
-หลักการ:
-
-- profiles: user อ่าน profile ตัวเองได้, admin จัดการได้
-- backorder_tickets: เฉพาะ staff ที่ login และ active อ่าน/เขียนได้
-- backorder_items: เฉพาะ staff ที่ login และ active อ่าน/เขียนได้
-- audit_logs: staff อ่านได้, insert ผ่าน function/RPC เท่านั้น
-- public status ห้ามอ่าน table โดยตรง ให้ผ่าน RPC/Edge Function ที่คืนข้อมูลจำกัดเท่านั้น
-
-ห้ามใช้ policy แบบเปิดกว้าง:
-
-```sql
-using (true)
-with check (true)
-```
-
-ยกเว้นมีเหตุผลเฉพาะและต้อง comment ชัดเจน
+- RLS เปิดอยู่ทุกตาราง — ห้ามปิดหรือ bypass
+- ห้ามใช้ policy `using (true)` / `with check (true)` โดยไม่มีเหตุผลและ comment
+- Public status endpoint คืนข้อมูลจำกัด — **ห้ามส่ง** `patient_name`, `hn`, `phone`, `phone_last4`, รายละเอียดยา, `note`, `created_by`, `updated_by`
+- ห้ามส่ง service role key กลับไปยัง frontend
 
 ---
 
-## Implementation Order
+## Migrations (สถานะปัจจุบัน — apply แล้วทั้งหมด)
 
-ทำตามลำดับนี้
+| # | ไฟล์ | สถานะ |
+|---|------|-------|
+| 001 | `init.sql` | ✅ applied |
+| 002 | `username_auth.sql` | ✅ applied |
+| 003 | `fix_token_no_pgcrypto.sql` | ✅ applied |
+| 004 | `rename_ticket_prefix.sql` | ✅ applied |
+| 005 | `drugs_table_and_seed.sql` | ✅ applied |
+| 006 | `self_update_profile.sql` | ✅ applied |
+| 007 | `lookup_by_date.sql` | ✅ applied |
+| 008 | `role_profile_revamp.sql` | ✅ applied |
+| 009 | `audit_trail.sql` | ✅ applied |
+| 010 | `audit_log_retention.sql` | ✅ applied |
+| 011 | `seed_users_from_json.sql` | ✅ applied |
 
-1. อ่าน AGENTS.md ทั้งหมด
-2. สำรวจ frontend prototype และสรุป route/component ที่มีอยู่
-3. สร้าง Supabase client และ env example
-4. สร้าง SQL migration: tables, indexes, functions, RLS
-5. สร้าง service layer สำหรับ frontend
-6. แทน mock data ด้วย backend data
-7. เชื่อม create ticket
-8. เชื่อม status update
-9. เชื่อม QR/public status
-10. เชื่อม lookup
-11. เพิ่ม audit log
-12. ทดสอบทุก flow
-
----
-
-## Testing Checklist
-
-ต้องทดสอบอย่างน้อย:
-
-- Login staff สำเร็จ
-- สร้างใบค้างยาได้
-- ticket_no ถูกสร้างอัตโนมัติ
-- public_token ถูกสร้างและไม่ซ้ำ
-- QR เปิดหน้า public status ได้
-- public status ไม่แสดงข้อมูลส่วนตัวเกินจำเป็น
-- lookup ด้วย ticket_no + phone_last4 ถูกต้อง
-- lookup ด้วย phone_last4 ผิด ต้องไม่พบ
-- เปลี่ยนสถานะเป็น ready ได้
-- เปลี่ยนสถานะเป็น picked_up ได้
-- cancelled พร้อมเหตุผลได้
-- audit log ถูกสร้าง
-- reload หน้าแล้วข้อมูลยังอยู่
-- UI เหมือนเดิม ไม่เปลี่ยนหน้าตา prototype
+Migration ใหม่ต้องใช้หมายเลขถัดไป (`012_...`) และต้องได้รับอนุญาตก่อน
 
 ---
 
-## Final Response Required From AI Agent
+## สิ่งที่ห้ามทำในทุกกรณี
 
-หลังทำเสร็จ ให้สรุปเป็นภาษาไทย:
-
-- สำรวจพบหน้า/route อะไรบ้าง
-- ไฟล์ที่สร้าง
-- ไฟล์ที่แก้
-- database migration ที่เพิ่ม
-- RPC/Function ที่เพิ่ม
-- วิธีตั้งค่า Supabase
-- วิธีตั้งค่า `.env`
-- วิธี run local
-- วิธี deploy
-- วิธีทดสอบ flow หลัก
-- จุดที่ยังต้องให้ผู้ใช้เติมเอง เช่น Supabase URL/Anon Key
+- ❌ SMS / SMSMKT / LINE notification
+- ❌ Firebase (ทุก product)
+- ❌ Supabase Realtime (ถ้าไม่ได้รับอนุญาต)
+- ❌ Sign-up สาธารณะ
+- ❌ แสดง email จริงหรือ internal email ใน UI
+- ❌ เปลี่ยนโครงสร้างตารางที่มีอยู่โดยไม่ได้รับอนุญาต
+- ❌ Drop หรือ alter migration ที่ apply ไปแล้ว
+- ❌ เปลี่ยน visual/UI โดยไม่ได้รับคำสั่ง
+- ❌ Refactor code เดิมโดยที่ไม่ได้ถูกขอ
+- ❌ เพิ่ม comment หรือ console.log ที่ไม่จำเป็น
+- ❌ แก้ AGENTS.md นี้โดยไม่ได้รับอนุญาต
