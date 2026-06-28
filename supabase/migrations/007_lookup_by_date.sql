@@ -20,7 +20,7 @@ BEGIN
       AND t.phone_last4 = lookup_ticket_by_date.phone_last4;
 
   IF tickets_arr IS NULL THEN
-    RETURN jsonb_build_object('found', false, 'message', 'ไม่พบข้อมูลใบค้างยา');
+    RETURN jsonb_build_object('found', false, 'message', 'ไม่พบข้อมูลใบค้างรับยา');
   END IF;
 
   INSERT INTO public.audit_logs (ticket_id, ticket_no, action, actor_type, detail)

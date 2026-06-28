@@ -14,6 +14,7 @@ export const supabase = isSupabaseConfigured
         persistSession: true,
         autoRefreshToken: true,
         detectSessionInUrl: true,
+        storage: window.sessionStorage,
       },
     })
   : null;

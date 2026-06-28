@@ -202,7 +202,7 @@ as $$
     when 'preparing' then 'ห้องยากำลังเตรียมยาของท่าน กรุณาตรวจสอบสถานะอีกครั้งภายหลัง'
     when 'ready' then 'ยาของท่านพร้อมรับแล้ว กรุณาติดต่อรับยาที่ห้องยาในเวลาทำการ'
     when 'picked_up' then 'รายการนี้ถูกรับยาเรียบร้อยแล้ว'
-    when 'cancelled' then 'รายการใบค้างยานี้ถูกยกเลิก กรุณาติดต่อห้องยา หากมีข้อสงสัย'
+    when 'cancelled' then 'รายการใบค้างรับยานี้ถูกยกเลิก กรุณาติดต่อห้องยา หากมีข้อสงสัย'
     else 'ไม่พบสถานะ'
   end;
 $$;
@@ -434,7 +434,7 @@ begin
     where public_token = token;
 
   if ticket.id is null then
-    return jsonb_build_object('found', false, 'message', 'ไม่พบข้อมูลใบค้างยา');
+    return jsonb_build_object('found', false, 'message', 'ไม่พบข้อมูลใบค้างรับยา');
   end if;
 
   result := public.ticket_public_status(ticket);
@@ -457,7 +457,7 @@ declare
   result jsonb;
 begin
   if btrim(coalesce(ticket_no, '')) = '' or phone_last4 !~ '^\d{4}$' then
-    return jsonb_build_object('found', false, 'message', 'ไม่พบข้อมูลใบค้างยา');
+    return jsonb_build_object('found', false, 'message', 'ไม่พบข้อมูลใบค้างรับยา');
   end if;
 
   select *
@@ -467,7 +467,7 @@ begin
       and backorder_tickets.phone_last4 = lookup_ticket_status.phone_last4;
 
   if ticket.id is null then
-    return jsonb_build_object('found', false, 'message', 'ไม่พบข้อมูลใบค้างยา');
+    return jsonb_build_object('found', false, 'message', 'ไม่พบข้อมูลใบค้างรับยา');
   end if;
 
   result := public.ticket_public_status(ticket);

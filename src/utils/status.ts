@@ -50,7 +50,7 @@ export const STATUSES: Record<TicketStatus, StatusMeta> = {
     text: '#be123c',
     bg: '#fff1f2',
     border: '#fecdd3',
-    msg: 'รายการใบค้างยานี้ถูกยกเลิก\nกรุณาติดต่อห้องยา หากมีข้อสงสัย',
+    msg: 'รายการใบค้างรับยานี้ถูกยกเลิก\nกรุณาติดต่อห้องยา หากมีข้อสงสัย',
   },
 };
 

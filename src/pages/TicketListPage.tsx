@@ -109,14 +109,14 @@ export function TicketListPage({
   return (
     <div className="animate-fade-up">
       <div className="mb-[20px] flex flex-wrap items-end justify-between gap-[14px]">
-        <div><h1 className="mb-[4px] text-[clamp(20px,3vw,26px)] font-bold text-[#0f172a]">รายการใบค้างยา</h1><p className="text-[13.5px] text-[#64748b]">พบ {filtered.length} รายการ{totalPages > 1 ? ` · หน้า ${currentPage}/${totalPages}` : ''}</p></div>
-        <button onClick={onCreate} className="inline-flex cursor-pointer items-center gap-[8px] rounded-[12px] border-0 bg-[#2563eb] px-[18px] py-[11px] text-[14px] font-bold text-white hover:bg-[#1d4ed8]"><Icon name="plus" size={18} strokeWidth={2.2} />สร้างใบค้างยา</button>
+        <div><h1 className="mb-[4px] text-[clamp(20px,3vw,26px)] font-bold text-[#0f172a]">รายการใบค้างรับยา</h1><p className="text-[13.5px] text-[#64748b]">พบ {filtered.length} รายการ{totalPages > 1 ? ` · หน้า ${currentPage}/${totalPages}` : ''}</p></div>
+        <button onClick={onCreate} className="inline-flex cursor-pointer items-center gap-[8px] rounded-[12px] border-0 bg-[#2563eb] px-[18px] py-[11px] text-[14px] font-bold text-white hover:bg-[#1d4ed8]"><Icon name="plus" size={18} strokeWidth={2.2} />สร้างใบค้างรับยา</button>
       </div>
 
       <div className="mb-[16px] rounded-[18px] border border-[#e7eef7] bg-white px-[18px] py-[16px]">
         <div className="relative mb-[14px]">
           <span className="absolute left-[14px] top-1/2 inline-flex -translate-y-1/2 text-[#94a3b8]"><Icon name="search" size={18} /></span>
-          <input value={query} onChange={(event) => onQueryChange(event.target.value)} placeholder="ค้นหาด้วยเลขใบค้างยา, HN หรือชื่อผู้ป่วย" className="w-full rounded-[12px] border border-[#cbd5e1] py-[12px] pl-[42px] pr-[14px] text-[14px] text-[#0f172a] outline-none focus:border-[#2563eb] focus:shadow-[0_0_0_3px_rgba(37,99,235,.15)]" />
+          <input value={query} onChange={(event) => onQueryChange(event.target.value)} placeholder="ค้นหาด้วยเลขใบค้างรับยา, HN หรือชื่อผู้ป่วย" className="w-full rounded-[12px] border border-[#cbd5e1] py-[12px] pl-[42px] pr-[14px] text-[14px] text-[#0f172a] outline-none focus:border-[#2563eb] focus:shadow-[0_0_0_3px_rgba(37,99,235,.15)]" />
         </div>
         <div className="flex flex-wrap items-center gap-[8px]">
           <span className="mr-[2px] text-[12.5px] text-[#94a3b8]">สถานะ:</span>
@@ -150,7 +150,7 @@ export function TicketListPage({
       {filtered.length === 0 ? (
         <div className="rounded-[18px] border border-[#e7eef7] bg-white px-[24px] py-[56px] text-center">
           <div className="mb-[16px] inline-flex h-[66px] w-[66px] items-center justify-center rounded-full bg-[#eff6ff] text-[#93c5fd]"><Icon name="search" size={30} /></div>
-          <h3 className="mb-[6px] text-[16px] font-bold text-[#334155]">ไม่พบใบค้างยาที่ตรงกับเงื่อนไข</h3>
+          <h3 className="mb-[6px] text-[16px] font-bold text-[#334155]">ไม่พบใบค้างรับยาที่ตรงกับเงื่อนไข</h3>
           <p className="mb-[18px] text-[13.5px] text-[#94a3b8]">ลองปรับคำค้นหาหรือตัวกรองสถานะใหม่อีกครั้ง</p>
           <button onClick={clearFilters} className="cursor-pointer rounded-[11px] border border-[#bfdbfe] bg-[#eff6ff] px-[20px] py-[10px] text-[13.5px] font-bold text-[#1d4ed8] hover:bg-[#dbeafe]">ล้างตัวกรองทั้งหมด</button>
         </div>

@@ -15,7 +15,7 @@ export function PrintPage({ ticket, qrUrl, onBack, onPublicView }: PrintPageProp
     <div className="print-wrap flex min-h-screen flex-col items-center bg-[#e8eef6] px-[16px] py-[26px]">
       <div className="no-print mb-[18px] flex w-full max-w-[520px] gap-[10px]">
         <button onClick={onBack} className="flex-1 cursor-pointer rounded-[12px] border border-[#cbd5e1] bg-white p-[12px] text-[14px] font-semibold text-[#475569] hover:bg-[#f8fafc]">← กลับไปรายละเอียด</button>
-        <button onClick={() => window.print()} className="inline-flex flex-1 cursor-pointer items-center justify-center gap-[7px] rounded-[12px] border-0 bg-[#2563eb] p-[12px] text-[14px] font-bold text-white hover:bg-[#1d4ed8]"><Icon name="printer" size={17} />พิมพ์ใบค้างยา</button>
+        <button onClick={() => window.print()} className="inline-flex flex-1 cursor-pointer items-center justify-center gap-[7px] rounded-[12px] border-0 bg-[#2563eb] p-[12px] text-[14px] font-bold text-white hover:bg-[#1d4ed8]"><Icon name="printer" size={17} />พิมพ์ใบค้างรับยา</button>
       </div>
 
       <div className="print-paper w-full max-w-[520px] rounded-[14px] border border-[#e2e8f0] bg-white px-[28px] py-[24px] shadow-[0_14px_36px_-20px_rgba(15,42,90,.45)]">
@@ -24,12 +24,12 @@ export function PrintPage({ ticket, qrUrl, onBack, onPublicView }: PrintPageProp
           <div className="flex items-center gap-[11px]">
             <img src={uscLogo} alt="USC+" className="h-[40px]" />
             <div className="leading-[1.3]">
-              <div className="text-[16px] font-bold text-[#0f172a]">ใบค้างยา</div>
+              <div className="text-[16px] font-bold text-[#0f172a]">ใบค้างรับยา</div>
               <div className="text-[11px] text-[#64748b]">ห้องยา USC+ · โรงพยาบาลอุตรดิตถ์</div>
             </div>
           </div>
           <div className="text-right">
-            <div className="text-[10px] uppercase tracking-wide text-[#94a3b8]">เลขที่ใบค้างยา</div>
+            <div className="text-[10px] uppercase tracking-wide text-[#94a3b8]">เลขที่ใบค้างรับยา</div>
             <div className="text-[15px] font-bold tabular-nums text-[#1d4ed8]">{ticket.no}</div>
             <div className="text-[11px] text-[#64748b]">{formatThaiDate(ticket.createdAt)}</div>
           </div>

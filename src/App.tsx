@@ -531,7 +531,7 @@ export function App() {
   async function handleCancelCreate() {
     const result = await Swal.fire({
       icon: 'warning',
-      title: 'ยกเลิกการสร้างใบค้างยา?',
+      title: 'ยกเลิกการสร้างใบค้างรับยา?',
       text: 'ข้อมูลที่กรอกจะไม่ถูกบันทึก',
       showCancelButton: true,
       confirmButtonColor: '#e11d48',
@@ -587,8 +587,8 @@ export function App() {
 
     const confirmation = await Swal.fire({
       icon: 'question',
-      title: 'ยืนยันการบันทึกใบค้างยา?',
-      text: 'ระบบจะออกเลขใบค้างยาและสร้าง QR Code สำหรับผู้ป่วย',
+      title: 'ยืนยันการบันทึกใบค้างรับยา?',
+      text: 'ระบบจะออกเลขใบค้างรับยาและสร้าง QR Code สำหรับผู้ป่วย',
       showCancelButton: true,
       confirmButtonColor: '#2563eb',
       cancelButtonColor: '#94a3b8',
@@ -653,8 +653,8 @@ export function App() {
       setActiveId(createdId);
       const result = await Swal.fire({
         icon: 'success',
-        title: 'บันทึกใบค้างยาสำเร็จ',
-        html: `เลขที่ใบค้างยา <b>${ticketNo}</b>`,
+        title: 'บันทึกใบค้างรับยาสำเร็จ',
+        html: `เลขที่ใบค้างรับยา <b>${ticketNo}</b>`,
         showCancelButton: true,
         confirmButtonText: 'พิมพ์ QR',
         cancelButtonText: 'ดูรายละเอียด',
@@ -664,7 +664,7 @@ export function App() {
       });
       navigate(result.isConfirmed ? 'print' : 'detail', createdId);
     } catch (error) {
-      await showError('บันทึกใบค้างยาไม่สำเร็จ', error);
+      await showError('บันทึกใบค้างรับยาไม่สำเร็จ', error);
     } finally {
       setLoading(false);
     }
@@ -774,7 +774,7 @@ export function App() {
 
   async function handleStatusChange(status: TicketStatus) {
     if (!activeTicket) return;
-    const statusText = status === 'cancelled' ? 'ยกเลิกใบค้างยา' : undefined;
+    const statusText = status === 'cancelled' ? 'ยกเลิกใบค้างรับยา' : undefined;
     const result = await Swal.fire({
       icon: status === 'cancelled' ? 'warning' : 'question',
       title:
@@ -783,7 +783,7 @@ export function App() {
           : status === 'picked_up'
             ? 'ต้องการบันทึกว่าผู้ป่วยรับยาแล้วใช่หรือไม่?'
             : status === 'cancelled'
-              ? 'ต้องการยกเลิกใบค้างยานี้ใช่หรือไม่?'
+              ? 'ต้องการยกเลิกใบค้างรับยานี้ใช่หรือไม่?'
               : 'เปลี่ยนสถานะเป็น “กำลังเตรียมยา” ?',
       text:
         status === 'ready'
@@ -840,8 +840,8 @@ export function App() {
     if (!ticket || user.role !== 'admin') return;
     const result = await Swal.fire({
       icon: 'warning',
-      title: `ลบใบค้างยา ${ticket.no}?`,
-      text: 'ใบค้างยาและรายการยาภายในจะถูกลบถาวร แต่ประวัติการลบจะยังถูกเก็บใน Audit Log',
+      title: `ลบใบค้างรับยา ${ticket.no}?`,
+      text: 'ใบค้างรับยาและรายการยาภายในจะถูกลบถาวร แต่ประวัติการลบจะยังถูกเก็บใน Audit Log',
       showCancelButton: true,
       confirmButtonColor: '#e11d48',
       cancelButtonColor: '#94a3b8',
@@ -857,10 +857,10 @@ export function App() {
       setTickets((current) => current.filter((item) => item.id !== ticket.id));
       setAuditLogs([]);
       if (activeId === ticket.id) setActiveId(null);
-      showToast('ลบใบค้างยาสำเร็จ');
+      showToast('ลบใบค้างรับยาสำเร็จ');
       navigate('list');
     } catch (error) {
-      await showError('ลบใบค้างยาไม่สำเร็จ', error);
+      await showError('ลบใบค้างรับยาไม่สำเร็จ', error);
     } finally {
       setLoading(false);
     }
@@ -881,7 +881,7 @@ export function App() {
             return itemDate === lookupDate && item.phone.slice(-4) === lookupPhone.trim();
           });
       if (!found.length) {
-        await showWarning('ไม่พบข้อมูลใบค้างยา', 'กรุณาตรวจสอบวันที่รับบริการและเบอร์โทรอีกครั้ง');
+        await showWarning('ไม่พบข้อมูลใบค้างรับยา', 'กรุณาตรวจสอบวันที่รับบริการและเบอร์โทรอีกครั้ง');
         return;
       }
       setPublicStatuses(found.map((t) => (t.publicOnly ? t : publicTicket(t))));
@@ -943,7 +943,7 @@ export function App() {
   }
 
   if (route === 'lookup') {
-    return <LookupPage visitDate={lookupDate} phoneLast4={lookupPhone} loading={loading} onVisitDateChange={setLookupDate} onPhoneLast4Change={setLookupPhone} onSubmit={handleLookup} onLogin={() => navigate('login')} />;
+    return <LookupPage visitDate={lookupDate} phoneLast4={lookupPhone} loading={loading} onVisitDateChange={setLookupDate} onPhoneLast4Change={setLookupPhone} onSubmit={handleLookup} onLogin={() => navigate(authed ? 'dashboard' : 'login')} />;
   }
 
   if (route === 'public') {

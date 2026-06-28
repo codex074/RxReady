@@ -19,11 +19,11 @@ type StaffShellProps = {
 
 const pageTitles: Partial<Record<AppRoute, string>> = {
   dashboard: 'ภาพรวมระบบ',
-  create: 'สร้างใบค้างยา',
-  edit: 'แก้ไขใบค้างยา',
-  list: 'รายการใบค้างยา',
+  create: 'สร้างใบค้างรับยา',
+  edit: 'แก้ไขใบค้างรับยา',
+  list: 'รายการใบค้างรับยา',
   outstanding: 'ยาค้างคนไข้',
-  detail: 'รายละเอียดใบค้างยา',
+  detail: 'รายละเอียดใบค้างรับยา',
   users: 'จัดการผู้ใช้',
   drugs: 'จัดการรายการยา',
   audit: 'ประวัติการทำรายการ',
@@ -64,7 +64,7 @@ export function StaffShell({
         <div className="flex items-center gap-[11px] border-b border-[#eef2f7] px-[18px] pb-[16px] pt-[18px]">
           <img src={uscLogo} alt="USC+" className="h-[30px]" />
           <div className="leading-[1.2]">
-            <div className="text-[14.5px] font-bold text-[#0f172a]">ระบบใบค้างยา</div>
+            <div className="text-[14.5px] font-bold text-[#0f172a]">ระบบใบค้างรับยา</div>
             <div className="text-[11.5px] text-[#94a3b8]">USC+ · ห้องยา</div>
           </div>
         </div>
@@ -72,8 +72,8 @@ export function StaffShell({
         <nav className="flex flex-1 flex-col gap-[3px] overflow-y-auto px-[12px] py-[16px]">
           <div className="px-[12px] pb-[8px] pt-[4px] text-[11px] font-bold tracking-[.08em] text-[#b6c2d2]">เมนูหลัก</div>
           <NavButton active={route === 'dashboard'} icon="dashboard" label="หน้าหลัก" onClick={() => onNavigate('dashboard')} />
-          <NavButton active={route === 'create'} icon="plus-circle" label="สร้างใบค้างยา" onClick={() => onNavigate('create')} />
-          <NavButton active={route === 'list'} icon="list" label="รายการใบค้างยา" onClick={() => onNavigate('list')} />
+          <NavButton active={route === 'create'} icon="plus-circle" label="สร้างใบค้างรับยา" onClick={() => onNavigate('create')} />
+          <NavButton active={route === 'list'} icon="list" label="รายการใบค้างรับยา" onClick={() => onNavigate('list')} />
           <NavButton active={route === 'outstanding'} icon="pill" label="ยาค้างคนไข้" onClick={() => onNavigate('outstanding')} />
           {user.role === 'admin' && <NavButton active={route === 'users'} icon="users" label="จัดการผู้ใช้" onClick={() => onNavigate('users')} />}
           {(user.role === 'admin' || user.role === 'sub-admin') && <NavButton active={route === 'drugs'} icon="pill" label="จัดการรายการยา" onClick={() => onNavigate('drugs')} />}

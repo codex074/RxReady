@@ -46,12 +46,12 @@ export function CreateTicketPage({
   return (
     <div className="mx-auto max-w-[900px] animate-fade-up">
       <button onClick={onCancel} className="mb-[14px] inline-flex cursor-pointer items-center gap-[6px] border-0 bg-transparent p-0 text-[13.5px] font-semibold text-[#64748b] hover:text-[#2563eb]">{editing ? '← กลับหน้ารายละเอียด' : '← กลับหน้าหลัก'}</button>
-      <h1 className="mb-[4px] text-[clamp(20px,3vw,26px)] font-bold text-[#0f172a]">{editing ? 'แก้ไขใบค้างยา' : 'สร้างใบค้างยา'}</h1>
-      <p className="mb-[22px] text-[13.5px] text-[#64748b]">{editing ? 'แก้ไขข้อมูลผู้ป่วยและรายการยาที่ค้าง' : 'กรอกข้อมูลผู้ป่วยและรายการยาที่ค้าง ระบบจะออกเลขใบค้างยาและ QR Code ให้อัตโนมัติ'}</p>
+      <h1 className="mb-[4px] text-[clamp(20px,3vw,26px)] font-bold text-[#0f172a]">{editing ? 'แก้ไขใบค้างรับยา' : 'สร้างใบค้างรับยา'}</h1>
+      <p className="mb-[22px] text-[13.5px] text-[#64748b]">{editing ? 'แก้ไขข้อมูลผู้ป่วยและรายการยาที่ค้าง' : 'กรอกข้อมูลผู้ป่วยและรายการยาที่ค้าง ระบบจะออกเลขใบค้างรับยาและ QR Code ให้อัตโนมัติ'}</p>
 
       <div className="mb-[16px] rounded-[18px] border border-[#e7eef7] bg-white p-[22px]">
         <h2 className="mb-[3px] text-[16px] font-bold text-[#0f172a]">ข้อมูลผู้ป่วย</h2>
-        <p className="text-[12.5px] text-[#94a3b8]">ข้อมูลพื้นฐานสำหรับติดตามใบค้างยา</p>
+        <p className="text-[12.5px] text-[#94a3b8]">ข้อมูลพื้นฐานสำหรับติดตามใบค้างรับยา</p>
         <div className="mt-[18px] grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-[15px]">
           <Field label="HN" required>
             <input
@@ -123,7 +123,7 @@ export function CreateTicketPage({
 
       <div className="flex flex-wrap justify-end gap-[12px]">
         <button onClick={onCancel} className="cursor-pointer rounded-[12px] border border-[#cbd5e1] bg-white px-[22px] py-[12px] text-[14.5px] font-semibold text-[#475569] hover:bg-[#f8fafc]">ยกเลิก</button>
-        <button onClick={onSave} disabled={loading} className="inline-flex cursor-pointer items-center gap-[8px] rounded-[12px] border-0 bg-[#2563eb] px-[26px] py-[12px] text-[14.5px] font-bold text-white hover:bg-[#1d4ed8]"><Icon name="save" size={18} />{loading ? 'กำลังบันทึก...' : editing ? 'บันทึกการแก้ไข' : 'บันทึกใบค้างยา'}</button>
+        <button onClick={onSave} disabled={loading} className="inline-flex cursor-pointer items-center gap-[8px] rounded-[12px] border-0 bg-[#2563eb] px-[26px] py-[12px] text-[14.5px] font-bold text-white hover:bg-[#1d4ed8]"><Icon name="save" size={18} />{loading ? 'กำลังบันทึก...' : editing ? 'บันทึกการแก้ไข' : 'บันทึกใบค้างรับยา'}</button>
       </div>
     </div>
   );

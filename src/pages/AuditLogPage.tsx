@@ -50,7 +50,7 @@ export function AuditLogPage({ logs, loading, onRefresh }: AuditLogPageProps) {
         </div>
         <select value={filter} onChange={(event) => setFilter(event.target.value as AuditFilter)} className="min-w-[180px] rounded-[11px] border border-[#cbd5e1] bg-white px-[13px] py-[10px] text-[13.5px] text-[#334155] outline-none focus:border-[#2563eb]">
           <option value="all">ทุกการทำรายการ</option>
-          <option value="ticket">ใบค้างยา</option>
+          <option value="ticket">ใบค้างรับยา</option>
           <option value="drug">ข้อมูลยา</option>
           <option value="user">ผู้ใช้งาน</option>
         </select>
@@ -119,9 +119,9 @@ function actionCategory(action: string): Exclude<AuditFilter, 'all'> {
 
 function actionText(log: AuditLogEntry): string {
   const labels: Record<string, string> = {
-    create_ticket: 'ออกใบค้างยา',
-    update_ticket: 'แก้ไขใบค้างยา',
-    delete_ticket: 'ลบใบค้างยา',
+    create_ticket: 'ออกใบค้างรับยา',
+    update_ticket: 'แก้ไขใบค้างรับยา',
+    delete_ticket: 'ลบใบค้างรับยา',
     create_drug: 'เพิ่มข้อมูลยา',
     update_drug: 'แก้ไขข้อมูลยา',
     delete_drug: 'ลบข้อมูลยา',
@@ -137,7 +137,7 @@ function actionText(log: AuditLogEntry): string {
 }
 
 function targetText(log: AuditLogEntry): string {
-  if (log.ticketNo) return `ใบค้างยา ${log.ticketNo}`;
+  if (log.ticketNo) return `ใบค้างรับยา ${log.ticketNo}`;
   if (typeof log.detail.drugName === 'string') return log.detail.drugName;
   if (typeof log.detail.username === 'string') return `@${log.detail.username}`;
   if (typeof log.detail.name === 'string') return log.detail.name;

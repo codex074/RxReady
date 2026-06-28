@@ -31,11 +31,11 @@ export function TicketDetailPage({
 
   return (
     <div className="animate-fade-up">
-      <button onClick={onBack} className="mb-[14px] inline-flex cursor-pointer items-center gap-[6px] border-0 bg-transparent p-0 text-[13.5px] font-semibold text-[#64748b] hover:text-[#2563eb]">← กลับไปรายการใบค้างยา</button>
+      <button onClick={onBack} className="mb-[14px] inline-flex cursor-pointer items-center gap-[6px] border-0 bg-transparent p-0 text-[13.5px] font-semibold text-[#64748b] hover:text-[#2563eb]">← กลับไปรายการใบค้างรับยา</button>
 
       <div className="mb-[20px] flex flex-wrap items-start justify-between gap-[14px]">
         <div>
-          <div className="mb-[4px] text-[12.5px] text-[#94a3b8]">เลขที่ใบค้างยา</div>
+          <div className="mb-[4px] text-[12.5px] text-[#94a3b8]">เลขที่ใบค้างรับยา</div>
           <div className="flex flex-wrap items-center gap-[12px]">
             <h1 className="text-[clamp(22px,3.4vw,30px)] font-bold tabular-nums text-[#0f172a]">{ticket.no}</h1>
             <StatusBadge status={ticket.status} large />
@@ -43,7 +43,7 @@ export function TicketDetailPage({
           <div className="mt-[6px] text-[13px] text-[#94a3b8]">สร้างเมื่อ {formatThaiDate(ticket.createdAt)} · อัปเดต {formatRelative(ticket.updatedAt)}</div>
         </div>
         <div className="flex flex-wrap gap-[9px]">
-          {canDelete && <button disabled={loading} onClick={onDelete} className="inline-flex cursor-pointer items-center gap-[8px] rounded-[12px] border border-[#fecdd3] bg-white px-[16px] py-[11px] text-[14px] font-bold text-[#be123c] hover:bg-[#fff1f2] disabled:cursor-not-allowed disabled:opacity-60"><Icon name="trash" size={17} />ลบใบค้างยา</button>}
+          {canDelete && <button disabled={loading} onClick={onDelete} className="inline-flex cursor-pointer items-center gap-[8px] rounded-[12px] border border-[#fecdd3] bg-white px-[16px] py-[11px] text-[14px] font-bold text-[#be123c] hover:bg-[#fff1f2] disabled:cursor-not-allowed disabled:opacity-60"><Icon name="trash" size={17} />ลบใบค้างรับยา</button>}
           <button onClick={onPrint} className="inline-flex cursor-pointer items-center gap-[8px] rounded-[12px] border-0 bg-[#2563eb] px-[18px] py-[11px] text-[14px] font-bold text-white hover:bg-[#1d4ed8]"><Icon name="printer" size={18} />พิมพ์ QR / สลิป</button>
         </div>
       </div>
@@ -99,7 +99,7 @@ export function TicketDetailPage({
         <div className="flex min-w-0 flex-[1_1_270px] flex-col gap-[16px]">
           <div className="rounded-[18px] border border-[#e7eef7] bg-white p-[22px]">
             <h2 className="mb-[18px] text-[15.5px] font-bold text-[#0f172a]">ความคืบหน้า</h2>
-            {ticket.status === 'cancelled' && <div className="flex items-center gap-[9px] rounded-[12px] border border-[#fecdd3] bg-[#fff1f2] px-[14px] py-[12px] text-[13.5px] font-semibold text-[#be123c]"><span className="h-[9px] w-[9px] rounded-full bg-[#f43f5e]" />ใบค้างยานี้ถูกยกเลิกแล้ว</div>}
+            {ticket.status === 'cancelled' && <div className="flex items-center gap-[9px] rounded-[12px] border border-[#fecdd3] bg-[#fff1f2] px-[14px] py-[12px] text-[13.5px] font-semibold text-[#be123c]"><span className="h-[9px] w-[9px] rounded-full bg-[#f43f5e]" />ใบค้างรับยานี้ถูกยกเลิกแล้ว</div>}
             <div className="flex flex-col">
               {PUBLIC_TIMELINE_ORDER.map((status, index) => {
                 const meta = STATUSES[status];
@@ -134,7 +134,7 @@ export function TicketDetailPage({
             </div>
             <div className="my-[14px] h-px bg-[#eef2f7]" />
             <button disabled={loading} onClick={() => onStatusChange('cancelled')} className="flex w-full cursor-pointer items-center gap-[10px] rounded-[12px] border border-[#fecdd3] bg-white px-[14px] py-[12px] text-left text-[14px] font-semibold text-[#be123c] transition hover:bg-[#fff1f2]">
-              <span className="h-[9px] w-[9px] shrink-0 rounded-full bg-[#f43f5e]" />ยกเลิกใบค้างยา
+              <span className="h-[9px] w-[9px] shrink-0 rounded-full bg-[#f43f5e]" />ยกเลิกใบค้างรับยา
               {ticket.status === 'cancelled' && <span className="ml-auto rounded-full border border-current px-[9px] py-[2px] text-[10.5px] font-bold">ปัจจุบัน</span>}
             </button>
           </div>
@@ -181,11 +181,11 @@ function Info({ label, value, tabular }: InfoProps) {
 }
 
 function auditActionText(log: TicketAuditLog): string {
-  if (log.action === 'create_ticket') return 'ออกใบค้างยา';
+  if (log.action === 'create_ticket') return 'ออกใบค้างรับยา';
   if (log.action === 'update_status' && log.newStatus) {
     const status = STATUSES[log.newStatus].label;
     const reason = typeof log.detail.reason === 'string' ? log.detail.reason.trim() : '';
     return reason ? `เปลี่ยนสถานะเป็น “${status}” · ${reason}` : `เปลี่ยนสถานะเป็น “${status}”`;
   }
-  return 'ทำรายการกับใบค้างยา';
+  return 'ทำรายการกับใบค้างรับยา';
 }

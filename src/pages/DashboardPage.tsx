@@ -38,7 +38,7 @@ export function DashboardPage({
           <h1 className="mb-[4px] text-[clamp(20px,3vw,26px)] font-bold text-[#0f172a]">ภาพรวมระบบ</h1>
           <p className="text-[13.5px] text-[#64748b]">{todayThai()}</p>
         </div>
-        <button onClick={onCreate} className="inline-flex cursor-pointer items-center gap-[8px] rounded-[12px] border-0 bg-[#2563eb] px-[18px] py-[11px] text-[14px] font-bold text-white hover:bg-[#1d4ed8]"><Icon name="plus" size={18} strokeWidth={2.2} />สร้างใบค้างยา</button>
+        <button onClick={onCreate} className="inline-flex cursor-pointer items-center gap-[8px] rounded-[12px] border-0 bg-[#2563eb] px-[18px] py-[11px] text-[14px] font-bold text-white hover:bg-[#1d4ed8]"><Icon name="plus" size={18} strokeWidth={2.2} />สร้างใบค้างรับยา</button>
       </div>
 
       <div className="mb-[26px] grid grid-cols-[repeat(auto-fit,minmax(165px,1fr))] gap-[13px]">
@@ -52,7 +52,7 @@ export function DashboardPage({
 
       <div className="overflow-hidden rounded-[18px] border border-[#e7eef7] bg-white">
         <div className="flex items-center justify-between gap-[10px] border-b border-[#eef2f7] px-[20px] py-[18px]">
-          <h2 className="text-[16px] font-bold text-[#0f172a]">ใบค้างยาล่าสุด</h2>
+          <h2 className="text-[16px] font-bold text-[#0f172a]">ใบค้างรับยาล่าสุด</h2>
           <button onClick={() => onList('all')} className="cursor-pointer border-0 bg-transparent text-[13px] font-semibold text-[#2563eb]">ดูทั้งหมด →</button>
         </div>
         <TicketRows tickets={recent} mode="recent" onView={onView} onPrint={onPrint} />
