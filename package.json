@@ -1,8 +1,18 @@
 {
+  "name": "rxready-staff",
+  "version": "1.0.1",
+  "private": true,
+  "description": "USC RxReady staff desktop application",
   "type": "module",
+  "main": "electron/main.cjs",
   "scripts": {
     "dev": "vite --host 0.0.0.0",
     "build": "vite build",
+    "build:desktop-ui": "vite build --config vite.desktop.config.ts",
+    "desktop:start": "npm run build:desktop-ui && electron .",
+    "desktop:package:mac": "npm run build:desktop-ui && electron-builder --mac dmg --x64",
+    "desktop:package:win": "npm run build:desktop-ui && electron-builder --win nsis --x64",
+    "desktop:package:win:dir": "npm run build:desktop-ui && electron-builder --win dir --x64",
     "preview": "vite preview --host 0.0.0.0",
     "typecheck": "tsc --noEmit"
   },
@@ -20,9 +30,48 @@
     "@types/react": "^19.2.2",
     "@types/react-dom": "^19.2.2",
     "@vitejs/plugin-react": "^5.0.4",
+    "electron": "^42.5.0",
+    "electron-builder": "^26.15.3",
     "tailwindcss": "^4.1.14",
     "typescript": "^5.9.3",
     "vite": "^7.1.10",
     "xlsx": "^0.18.5"
+  },
+  "build": {
+    "appId": "th.go.moph.utth.rxready.staff",
+    "productName": "USC-RxReady",
+    "asar": true,
+    "files": [
+      "dist-desktop/**/*",
+      "electron/**/*",
+      "package.json"
+    ],
+    "directories": {
+      "output": "release"
+    },
+    "mac": {
+      "target": [
+        { "target": "dmg", "arch": ["x64", "arm64"] }
+      ],
+      "artifactName": "USC-RxReady-${version}-${arch}.${ext}",
+      "category": "public.app-category.healthcare"
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "artifactName": "USC-RxReady-Setup-${version}-${arch}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    }
   }
 }

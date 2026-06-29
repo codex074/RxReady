@@ -59,6 +59,7 @@ import type {
   UpdateManagedUserInput,
 } from './types/user';
 import { publicStatusUrl, qrDataUrl, tokenFromLocation } from './utils/qr';
+import { isDesktopApp, openExternalUrl } from './services/patientService';
 
 const demoUser: StaffUser = {
   name: 'ภญ.ศิริพร วงศ์ทอง',
@@ -233,7 +234,7 @@ export function App() {
     }
     setSidebarOpen(false);
     setRoute(nextRoute);
-    if (nextRoute !== 'public' && window.location.pathname !== '/') {
+    if (!isDesktopApp() && nextRoute !== 'public' && window.location.pathname !== '/') {
       window.history.pushState({}, '', '/');
       setActiveToken('');
     }
@@ -926,6 +927,7 @@ export function App() {
   }
 
   async function openPublicView(ticket: Ticket) {
+    if (await openExternalUrl(publicStatusUrl(ticket.token))) return;
     if (isSupabaseConfigured) {
       const token = ticket.token;
       window.history.pushState({}, '', `/status/${encodeURIComponent(token)}`);
@@ -962,8 +964,8 @@ export function App() {
     <>
       <StaffShell route={route} user={user} sidebarOpen={sidebarOpen} onNavigate={navigate} onToggleSidebar={() => setSidebarOpen((open) => !open)} onCloseSidebar={() => setSidebarOpen(false)} onLogout={() => void handleLogout()} onEditProfile={() => setShowEditProfile(true)}>
         {route === 'dashboard' && <DashboardPage tickets={tickets} onCreate={() => navigate('create')} onList={(status = 'all') => { setStatusFilter(status); navigate('list'); }} onView={(id) => navigate('detail', id)} onPrint={(id) => navigate('print', id)} />}
-        {route === 'create' && <CreateTicketPage form={form} loading={loading} drugs={drugs} onFieldChange={(field, value) => setForm((current) => ({ ...current, [field]: value }))} onItemChange={(itemId, field, value) => setForm((current) => ({ ...current, items: current.items.map((item) => item.id === itemId ? { ...item, [field]: value } : item) }))} onItemSelect={(itemId, drug) => setForm((current) => ({ ...current, items: current.items.map((item) => item.id === itemId ? { ...item, name: drug.name, unit: drug.unit || item.unit } : item) }))} onAddItem={() => setForm((current) => ({ ...current, items: [...current.items, newFormItem()] }))} onRemoveItem={(id) => void handleRemoveItem(id)} onCancel={() => void handleCancelCreate()} onSave={() => void handleCreateTicket()} />}
-        {route === 'edit' && activeTicket && <CreateTicketPage mode="edit" form={form} loading={loading} drugs={drugs} onFieldChange={(field, value) => setForm((current) => ({ ...current, [field]: value }))} onItemChange={(itemId, field, value) => setForm((current) => ({ ...current, items: current.items.map((item) => item.id === itemId ? { ...item, [field]: value } : item) }))} onItemSelect={(itemId, drug) => setForm((current) => ({ ...current, items: current.items.map((item) => item.id === itemId ? { ...item, name: drug.name, unit: drug.unit || item.unit } : item) }))} onAddItem={() => setForm((current) => ({ ...current, items: [...current.items, newFormItem()] }))} onRemoveItem={(id) => void handleRemoveItem(id)} onCancel={() => { setForm(blankForm()); navigate('detail', activeTicket.id); }} onSave={() => void handleUpdateTicket()} />}
+        {route === 'create' && <CreateTicketPage form={form} loading={loading} drugs={drugs} canConfigurePatientLookup={user.role === 'admin'} onFieldChange={(field, value) => setForm((current) => ({ ...current, [field]: value }))} onItemChange={(itemId, field, value) => setForm((current) => ({ ...current, items: current.items.map((item) => item.id === itemId ? { ...item, [field]: value } : item) }))} onItemSelect={(itemId, drug) => setForm((current) => ({ ...current, items: current.items.map((item) => item.id === itemId ? { ...item, name: drug.name, unit: drug.unit || item.unit } : item) }))} onAddItem={() => setForm((current) => ({ ...current, items: [...current.items, newFormItem()] }))} onRemoveItem={(id) => void handleRemoveItem(id)} onCancel={() => void handleCancelCreate()} onSave={() => void handleCreateTicket()} />}
+        {route === 'edit' && activeTicket && <CreateTicketPage mode="edit" form={form} loading={loading} drugs={drugs} canConfigurePatientLookup={user.role === 'admin'} onFieldChange={(field, value) => setForm((current) => ({ ...current, [field]: value }))} onItemChange={(itemId, field, value) => setForm((current) => ({ ...current, items: current.items.map((item) => item.id === itemId ? { ...item, [field]: value } : item) }))} onItemSelect={(itemId, drug) => setForm((current) => ({ ...current, items: current.items.map((item) => item.id === itemId ? { ...item, name: drug.name, unit: drug.unit || item.unit } : item) }))} onAddItem={() => setForm((current) => ({ ...current, items: [...current.items, newFormItem()] }))} onRemoveItem={(id) => void handleRemoveItem(id)} onCancel={() => { setForm(blankForm()); navigate('detail', activeTicket.id); }} onSave={() => void handleUpdateTicket()} />}
         {route === 'list' && <TicketListPage tickets={tickets} query={query} statusFilter={statusFilter} onQueryChange={setQuery} onStatusChange={setStatusFilter} onCreate={() => navigate('create')} onView={(id) => navigate('detail', id)} onEdit={startEditTicket} onDelete={(id) => void handleDeleteTicket(tickets.find((ticket) => ticket.id === id) || null)} onPrint={(id) => navigate('print', id)} canDelete={user.role === 'admin'} />}
         {route === 'outstanding' && <OutstandingDrugsPage tickets={tickets} drugs={drugs} onView={(id) => navigate('detail', id)} />}
         {route === 'detail' && activeTicket && <TicketDetailPage ticket={activeTicket} loading={loading} auditLoading={auditLoading} auditLogs={auditLogs} canDelete={user.role === 'admin'} onBack={() => navigate('list')} onPrint={() => navigate('print', activeTicket.id)} onDelete={() => void handleDeleteTicket(activeTicket)} onStatusChange={(status) => void handleStatusChange(status)} />}

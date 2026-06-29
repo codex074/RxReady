@@ -1,5 +1,7 @@
 node_modules/
 dist/
+dist-desktop/
+release/
 .env
 .env.*
 !.env.example
@@ -11,3 +13,4 @@ coverage/
 supabase/.temp/
 assets/*.xlsx
 assets/*.xls
+config.ini
