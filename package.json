@@ -12,6 +12,7 @@
     "desktop:start": "npm run build:desktop-ui && electron .",
     "desktop:package:mac": "npm run build:desktop-ui && electron-builder --mac dmg --x64",
     "desktop:package:win": "npm run build:desktop-ui && electron-builder --win nsis --x64",
+    "desktop:package:win:portable": "npm run build:desktop-ui && electron-builder --win portable --x64",
     "desktop:package:win:dir": "npm run build:desktop-ui && electron-builder --win dir --x64",
     "preview": "vite preview --host 0.0.0.0",
     "typecheck": "tsc --noEmit"
@@ -60,12 +61,17 @@
       "target": [
         {
           "target": "nsis",
-          "arch": [
-            "x64"
-          ]
+          "arch": ["x64"]
+        },
+        {
+          "target": "portable",
+          "arch": ["x64"]
         }
       ],
-      "artifactName": "USC-RxReady-Setup-${version}-${arch}.${ext}"
+      "artifactName": "USC-RxReady-${version}-${arch}.${ext}"
+    },
+    "portable": {
+      "artifactName": "USC-RxReady-Portable-${version}-${arch}.${ext}"
     },
     "nsis": {
       "oneClick": false,
