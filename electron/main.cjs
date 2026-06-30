@@ -8,6 +8,13 @@ const APP_ID = 'th.go.moph.utth.rxready.staff';
 const CONFIG_FILE = 'patient-lookup-config.bin';
 const REQUEST_TIMEOUT_MS = 7000;
 
+let builtinDefaults = null;
+try {
+  builtinDefaults = require('./config-defaults.cjs');
+} catch {
+  // ไม่มีไฟล์ defaults — ผู้ใช้ต้องตั้งค่าเอง
+}
+
 let mainWindow = null;
 
 function configPath() {
@@ -47,13 +54,23 @@ async function saveConfig(input) {
 }
 
 async function loadConfig() {
-  if (!safeStorage.isEncryptionAvailable()) return null;
+  if (!safeStorage.isEncryptionAvailable()) {
+    if (builtinDefaults) return normalizeConfig(builtinDefaults);
+    return null;
+  }
   try {
     const encrypted = await fs.readFile(configPath());
     const decrypted = safeStorage.decryptString(encrypted);
     return normalizeConfig(JSON.parse(decrypted));
   } catch (error) {
-    if (error && error.code === 'ENOENT') return null;
+    if (error && error.code === 'ENOENT') {
+      if (builtinDefaults) {
+        // บันทึก defaults ลงดิสก์ครั้งแรก (encrypted)
+        try { await saveConfig(builtinDefaults); } catch { /* ignore */ }
+        return normalizeConfig(builtinDefaults);
+      }
+      return null;
+    }
     throw new Error('อ่านการตั้งค่า HOSxP ไม่สำเร็จ กรุณาตั้งค่าใหม่');
   }
 }

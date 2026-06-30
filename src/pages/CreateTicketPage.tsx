@@ -3,7 +3,6 @@ import type { TicketForm } from '../types/backorder';
 import type { Drug } from '../types/drug';
 import { Icon } from '../components/Icon';
 import { drugNameColor } from '../utils/drugColor';
-import { PatientLookupSettingsModal } from '../components/PatientLookupSettingsModal';
 import {
   isDesktopApp,
   isPatientLookupConfigured,
@@ -22,7 +21,6 @@ type CreateTicketPageProps = {
   onRemoveItem: (itemId: string) => void;
   onCancel: () => void;
   onSave: () => void;
-  canConfigurePatientLookup?: boolean;
 };
 
 const inputClass =
@@ -48,7 +46,6 @@ export function CreateTicketPage({
   onRemoveItem,
   onCancel,
   onSave,
-  canConfigurePatientLookup = false,
 }: CreateTicketPageProps) {
   const editing = mode === 'edit';
   const desktopLookupAvailable = isDesktopApp();
@@ -56,7 +53,6 @@ export function CreateTicketPage({
   const [lookupLoading, setLookupLoading] = useState(false);
   const [lookupMessage, setLookupMessage] = useState('');
   const [lookupMessageType, setLookupMessageType] = useState<'success' | 'error' | 'info'>('info');
-  const [showLookupSettings, setShowLookupSettings] = useState(false);
 
   useEffect(() => {
     if (!desktopLookupAvailable) return;
@@ -159,17 +155,8 @@ export function CreateTicketPage({
                         : 'text-[#64748b]'
                   }`}
                 >
-                  {lookupMessage || (lookupConfigured ? 'พร้อมค้นหาจาก HOSxP' : 'ยังไม่ได้ตั้งค่า API — สามารถกรอกชื่อเองได้')}
+                  {lookupMessage || (lookupConfigured ? 'พร้อมค้นหาจาก HOSxP' : 'กรอก HN เพื่อค้นหาชื่อผู้ป่วย')}
                 </span>
-                {canConfigurePatientLookup && (
-                  <button
-                    type="button"
-                    onClick={() => setShowLookupSettings(true)}
-                    className="cursor-pointer border-0 bg-transparent p-0 text-[11.5px] font-semibold text-[#2563eb] hover:underline"
-                  >
-                    {lookupConfigured ? 'แก้ไขการตั้งค่า' : 'ตั้งค่า API'}
-                  </button>
-                )}
               </div>
             )}
           </Field>
@@ -234,17 +221,6 @@ export function CreateTicketPage({
         <button onClick={onCancel} className="cursor-pointer rounded-[12px] border border-[#cbd5e1] bg-white px-[22px] py-[12px] text-[14.5px] font-semibold text-[#475569] hover:bg-[#f8fafc]">ยกเลิก</button>
         <button onClick={onSave} disabled={loading} className="inline-flex cursor-pointer items-center gap-[8px] rounded-[12px] border-0 bg-[#2563eb] px-[26px] py-[12px] text-[14.5px] font-bold text-white hover:bg-[#1d4ed8]"><Icon name="save" size={18} />{loading ? 'กำลังบันทึก...' : editing ? 'บันทึกการแก้ไข' : 'บันทึกใบค้างรับยา'}</button>
       </div>
-      {showLookupSettings && (
-        <PatientLookupSettingsModal
-          onClose={() => setShowLookupSettings(false)}
-          onSaved={() => {
-            setLookupConfigured(true);
-            setLookupMessageType('success');
-            setLookupMessage('บันทึกการตั้งค่า HOSxP API แล้ว');
-            setShowLookupSettings(false);
-          }}
-        />
-      )}
     </div>
   );
 }
