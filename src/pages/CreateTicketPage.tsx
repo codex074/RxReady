@@ -3,6 +3,11 @@ import type { TicketForm } from '../types/backorder';
 import type { Drug } from '../types/drug';
 import { Icon } from '../components/Icon';
 import { drugNameColor } from '../utils/drugColor';
+import {
+  isDesktopApp,
+  isPatientLookupConfigured,
+  lookupPatientByHn,
+} from '../services/patientService';
 
 type CreateTicketPageProps = {
   mode?: 'create' | 'edit';
@@ -43,6 +48,59 @@ export function CreateTicketPage({
   onSave,
 }: CreateTicketPageProps) {
   const editing = mode === 'edit';
+  const desktopLookupAvailable = isDesktopApp();
+  const [lookupConfigured, setLookupConfigured] = useState(false);
+  const [lookupLoading, setLookupLoading] = useState(false);
+  const [lookupMessage, setLookupMessage] = useState('');
+  const [lookupMessageType, setLookupMessageType] = useState<'success' | 'error' | 'info'>('info');
+
+  useEffect(() => {
+    if (!desktopLookupAvailable) return;
+    let cancelled = false;
+    void isPatientLookupConfigured()
+      .then((configured) => {
+        if (!cancelled) setLookupConfigured(configured);
+      })
+      .catch(() => {
+        if (!cancelled) setLookupConfigured(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [desktopLookupAvailable]);
+
+  async function handlePatientLookup() {
+    const hn = padHN(form.hn);
+    if (!hn.replace(/\D/g, '')) {
+      setLookupMessageType('error');
+      setLookupMessage('กรุณากรอก HN ก่อนค้นหา');
+      return;
+    }
+    if (hn !== form.hn) onFieldChange('hn', hn);
+
+    setLookupLoading(true);
+    setLookupMessageType('info');
+    setLookupMessage('กำลังค้นหาข้อมูลผู้ป่วย...');
+    try {
+      const result = await lookupPatientByHn(hn);
+      if (!result.ok) {
+        if (result.code === 'NOT_CONFIGURED') setLookupConfigured(false);
+        setLookupMessageType('error');
+        setLookupMessage(result.message);
+        return;
+      }
+      onFieldChange('hn', result.patient.hn);
+      onFieldChange('name', result.patient.fullName);
+      setLookupMessageType('success');
+      setLookupMessage('พบข้อมูลผู้ป่วยและเติมชื่อให้แล้ว');
+    } catch {
+      setLookupMessageType('error');
+      setLookupMessage('เชื่อมต่อ HOSxP ไม่สำเร็จ กรุณากรอกชื่อเอง');
+    } finally {
+      setLookupLoading(false);
+    }
+  }
+
   return (
     <div className="mx-auto max-w-[900px] animate-fade-up">
       <button onClick={onCancel} className="mb-[14px] inline-flex cursor-pointer items-center gap-[6px] border-0 bg-transparent p-0 text-[13.5px] font-semibold text-[#64748b] hover:text-[#2563eb]">{editing ? '← กลับหน้ารายละเอียด' : '← กลับหน้าหลัก'}</button>
@@ -54,15 +112,53 @@ export function CreateTicketPage({
         <p className="text-[12.5px] text-[#94a3b8]">ข้อมูลพื้นฐานสำหรับติดตามใบค้างรับยา</p>
         <div className="mt-[18px] grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-[15px]">
           <Field label="HN" required>
-            <input
-              value={form.hn}
-              onChange={(event) => onFieldChange('hn', event.target.value.replace(/\D/g, '').slice(0, 9))}
-              onBlur={(event) => { const padded = padHN(event.target.value); if (padded !== form.hn) onFieldChange('hn', padded); }}
-              placeholder="เช่น 0012453"
-              inputMode="numeric"
-              maxLength={9}
-              className={inputClass}
-            />
+            <div className="flex items-stretch gap-[8px]">
+              <input
+                value={form.hn}
+                onChange={(event) => {
+                  onFieldChange('hn', event.target.value.replace(/\D/g, '').slice(0, 9));
+                  setLookupMessage('');
+                }}
+                onBlur={(event) => { const padded = padHN(event.target.value); if (padded !== form.hn) onFieldChange('hn', padded); }}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' && desktopLookupAvailable && lookupConfigured) {
+                    event.preventDefault();
+                    void handlePatientLookup();
+                  }
+                }}
+                placeholder="เช่น 0012453"
+                inputMode="numeric"
+                maxLength={9}
+                className={inputClass}
+              />
+              {desktopLookupAvailable && (
+                <button
+                  type="button"
+                  onClick={() => void handlePatientLookup()}
+                  disabled={lookupLoading || !lookupConfigured || !form.hn.trim()}
+                  className="inline-flex shrink-0 cursor-pointer items-center gap-[6px] rounded-[11px] border border-[#bfdbfe] bg-[#eff6ff] px-[13px] text-[13px] font-bold text-[#1d4ed8] hover:bg-[#dbeafe] disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <Icon name={lookupLoading ? 'refresh' : 'search'} size={16} />
+                  {lookupLoading ? 'กำลังค้นหา' : 'ค้นหา'}
+                </button>
+              )}
+            </div>
+            {desktopLookupAvailable && (
+              <div className="mt-[6px] flex min-h-[20px] flex-wrap items-center gap-x-[8px] gap-y-[4px]">
+                <span
+                  role="status"
+                  className={`text-[11.5px] ${
+                    lookupMessageType === 'success'
+                      ? 'text-[#15803d]'
+                      : lookupMessageType === 'error'
+                        ? 'text-[#be123c]'
+                        : 'text-[#64748b]'
+                  }`}
+                >
+                  {lookupMessage || (lookupConfigured ? 'พร้อมค้นหาจาก HOSxP' : 'กรอก HN เพื่อค้นหาชื่อผู้ป่วย')}
+                </span>
+              </div>
+            )}
           </Field>
           <Field label="ชื่อ-สกุลผู้ป่วย" required>
             <input value={form.name} onChange={(event) => onFieldChange('name', event.target.value)} placeholder="เช่น สมชาย ใจดี" className={inputClass} />

@@ -4,7 +4,8 @@ const supabaseUrl = import.meta.env.VITE_SUPABASE_URL?.trim() || '';
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY?.trim() || '';
 
 export const appBaseUrl =
-  import.meta.env.VITE_APP_BASE_URL?.trim().replace(/\/+$/, '') || window.location.origin;
+  import.meta.env.VITE_APP_BASE_URL?.trim().replace(/\/+$/, '') ||
+  (window.location.protocol === 'file:' ? 'https://usc-rxready.vercel.app' : window.location.origin);
 
 export const isSupabaseConfigured = Boolean(supabaseUrl && supabaseAnonKey);
 

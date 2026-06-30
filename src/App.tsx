@@ -59,6 +59,7 @@ import type {
   UpdateManagedUserInput,
 } from './types/user';
 import { publicStatusUrl, qrDataUrl, tokenFromLocation } from './utils/qr';
+import { isDesktopApp, openExternalUrl } from './services/patientService';
 
 const demoUser: StaffUser = {
   name: 'ภญ.ศิริพร วงศ์ทอง',
@@ -233,7 +234,7 @@ export function App() {
     }
     setSidebarOpen(false);
     setRoute(nextRoute);
-    if (nextRoute !== 'public' && window.location.pathname !== '/') {
+    if (!isDesktopApp() && nextRoute !== 'public' && window.location.pathname !== '/') {
       window.history.pushState({}, '', '/');
       setActiveToken('');
     }
@@ -926,6 +927,7 @@ export function App() {
   }
 
   async function openPublicView(ticket: Ticket) {
+    if (await openExternalUrl(publicStatusUrl(ticket.token))) return;
     if (isSupabaseConfigured) {
       const token = ticket.token;
       window.history.pushState({}, '', `/status/${encodeURIComponent(token)}`);
