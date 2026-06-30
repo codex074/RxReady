@@ -645,6 +645,7 @@ export function App() {
             unit: item.unit,
             note: item.note.trim(),
             status: 'preparing',
+            receivedQty: 0,
           })),
         };
         setTickets((current) => [ticket, ...current]);
@@ -759,6 +760,7 @@ export function App() {
                 unit: item.unit.trim(),
                 note: item.note.trim(),
                 status: ticket.status,
+                receivedQty: 0,
               })),
             }
           : ticket));

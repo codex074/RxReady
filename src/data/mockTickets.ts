@@ -34,6 +34,7 @@ function ticket(
       unit,
       note: '',
       status,
+      receivedQty: 0,
     })),
   };
 }
