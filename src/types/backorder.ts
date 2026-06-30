@@ -49,6 +49,7 @@ export type TicketItem = {
   unit: string;
   note: string;
   status: TicketStatus;
+  receivedQty: number;
 };
 
 export type Ticket = {

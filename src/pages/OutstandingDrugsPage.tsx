@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { DrugReceiveModal } from '../components/DrugReceiveModal';
 import type { Ticket, TicketStatus } from '../types/backorder';
 import type { Drug } from '../types/drug';
 import { STATUSES } from '../utils/status';
@@ -10,6 +11,7 @@ type OutstandingDrugsPageProps = {
   tickets: Ticket[];
   drugs: Drug[];
   onView: (ticketId: string) => void;
+  onReceiveDrug: (drugName: string, unit: string, qty: number) => Promise<void>;
 };
 
 type PatientLine = {
@@ -96,9 +98,10 @@ function buildSummary(tickets: Ticket[], drugs: Drug[]): DrugSummary[] {
   );
 }
 
-export function OutstandingDrugsPage({ tickets, drugs, onView }: OutstandingDrugsPageProps) {
+export function OutstandingDrugsPage({ tickets, drugs, onView, onReceiveDrug }: OutstandingDrugsPageProps) {
   const [query, setQuery] = useState('');
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [receiveTarget, setReceiveTarget] = useState<{ name: string; unit: string } | null>(null);
 
   const summary = useMemo(() => buildSummary(tickets, drugs), [tickets, drugs]);
 
@@ -173,9 +176,13 @@ export function OutstandingDrugsPage({ tickets, drugs, onView }: OutstandingDrug
               const isOpen = expanded === drug.key;
               return (
                 <div key={drug.key}>
-                  <button
+                  <div className="flex">
+                  <div
+                    role="button"
+                    tabIndex={0}
                     onClick={() => setExpanded(isOpen ? null : drug.key)}
-                    className="grid w-full cursor-pointer grid-cols-[1fr_auto] items-center gap-x-[12px] gap-y-[6px] border-0 bg-transparent px-[20px] py-[13px] text-left hover:bg-[#f8fafc] min-[760px]:grid-cols-[1fr_100px_84px_110px_120px_44px]"
+                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setExpanded(isOpen ? null : drug.key); }}
+                    className="grid flex-1 cursor-pointer grid-cols-[1fr_auto] items-center gap-x-[12px] gap-y-[6px] border-0 bg-transparent px-[20px] py-[13px] text-left hover:bg-[#f8fafc] min-[760px]:grid-cols-[1fr_100px_84px_110px_120px_44px]"
                   >
                     <div className="min-w-0">
                       <div className="overflow-hidden text-ellipsis whitespace-nowrap text-[14.5px] font-semibold" style={{ color: drugNameColor(drug.colorTag) }}>{drug.name}</div>
@@ -222,7 +229,16 @@ export function OutstandingDrugsPage({ tickets, drugs, onView }: OutstandingDrug
                       )}
                     </div>
                     <span className={`hidden justify-self-end text-[#94a3b8] transition-transform min-[760px]:inline-flex ${isOpen ? 'rotate-90' : ''}`}><Icon name="list" size={16} /></span>
-                  </button>
+                  </div>
+                  {drug.preparingQty > 0 && (
+                    <button
+                      onClick={() => setReceiveTarget({ name: drug.name, unit: drug.unit })}
+                      className="flex shrink-0 cursor-pointer items-center self-stretch border-0 bg-transparent px-[14px] text-[12.5px] font-semibold text-[#1d4ed8] hover:bg-[#eff6ff]"
+                    >
+                      รับยาเข้า
+                    </button>
+                  )}
+                  </div>
 
                   {isOpen && (
                     <div className="bg-[#f8fafc] px-[20px] py-[12px]">
@@ -252,6 +268,17 @@ export function OutstandingDrugsPage({ tickets, drugs, onView }: OutstandingDrug
           </div>
         )}
       </div>
+      {receiveTarget && (
+        <DrugReceiveModal
+          drugName={receiveTarget.name}
+          unit={receiveTarget.unit}
+          tickets={tickets}
+          onConfirm={async (qty) => {
+            await onReceiveDrug(receiveTarget.name, receiveTarget.unit, qty);
+          }}
+          onClose={() => setReceiveTarget(null)}
+        />
+      )}
     </div>
   );
 }

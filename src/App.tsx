@@ -26,6 +26,7 @@ import {
   listTickets,
   lookupTicketStatus,
   lookupTicketStatusByDate,
+  receiveDrugStock,
   updateStatus,
   updateTicket,
 } from './services/ticketService';
@@ -645,6 +646,7 @@ export function App() {
             unit: item.unit,
             note: item.note.trim(),
             status: 'preparing',
+            receivedQty: 0,
           })),
         };
         setTickets((current) => [ticket, ...current]);
@@ -759,6 +761,7 @@ export function App() {
                 unit: item.unit.trim(),
                 note: item.note.trim(),
                 status: ticket.status,
+                receivedQty: 0,
               })),
             }
           : ticket));
@@ -940,6 +943,28 @@ export function App() {
     setRoute('public');
   }
 
+  async function handleReceiveDrug(drugName: string, unit: string, qty: number): Promise<void> {
+    if (!isSupabaseConfigured) {
+      throw new Error('ฟีเจอร์นี้ใช้งานได้เฉพาะเมื่อเชื่อมต่อฐานข้อมูลเท่านั้น');
+    }
+    try {
+      setLoading(true);
+      const result = await receiveDrugStock(drugName, unit, qty);
+      await reloadTickets();
+      const parts: string[] = [];
+      if (result.readyTicketIds.length > 0)
+        parts.push(`เปลี่ยนสถานะพร้อมรับ ${result.readyTicketIds.length} ราย`);
+      if (result.partialTicketIds.length > 0)
+        parts.push(`ตัดจำนวน ${result.partialTicketIds.length} ราย`);
+      showToast(parts.length > 0 ? parts.join(' · ') : 'ไม่มีรายการค้างสำหรับยานี้');
+    } catch (error) {
+      await showError('รับยาเข้าไม่สำเร็จ', error);
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  }
+
   if (route === 'login') {
     return <LoginPage username={loginUsername} password={loginPassword} loading={loading} onUsernameChange={setLoginUsername} onPasswordChange={setLoginPassword} onSubmit={handleLogin} onLookup={() => navigate('lookup')} />;
   }
@@ -967,7 +992,14 @@ export function App() {
         {route === 'create' && <CreateTicketPage form={form} loading={loading} drugs={drugs} onFieldChange={(field, value) => setForm((current) => ({ ...current, [field]: value }))} onItemChange={(itemId, field, value) => setForm((current) => ({ ...current, items: current.items.map((item) => item.id === itemId ? { ...item, [field]: value } : item) }))} onItemSelect={(itemId, drug) => setForm((current) => ({ ...current, items: current.items.map((item) => item.id === itemId ? { ...item, name: drug.name, unit: drug.unit || item.unit } : item) }))} onAddItem={() => setForm((current) => ({ ...current, items: [...current.items, newFormItem()] }))} onRemoveItem={(id) => void handleRemoveItem(id)} onCancel={() => void handleCancelCreate()} onSave={() => void handleCreateTicket()} />}
         {route === 'edit' && activeTicket && <CreateTicketPage mode="edit" form={form} loading={loading} drugs={drugs} onFieldChange={(field, value) => setForm((current) => ({ ...current, [field]: value }))} onItemChange={(itemId, field, value) => setForm((current) => ({ ...current, items: current.items.map((item) => item.id === itemId ? { ...item, [field]: value } : item) }))} onItemSelect={(itemId, drug) => setForm((current) => ({ ...current, items: current.items.map((item) => item.id === itemId ? { ...item, name: drug.name, unit: drug.unit || item.unit } : item) }))} onAddItem={() => setForm((current) => ({ ...current, items: [...current.items, newFormItem()] }))} onRemoveItem={(id) => void handleRemoveItem(id)} onCancel={() => { setForm(blankForm()); navigate('detail', activeTicket.id); }} onSave={() => void handleUpdateTicket()} />}
         {route === 'list' && <TicketListPage tickets={tickets} query={query} statusFilter={statusFilter} onQueryChange={setQuery} onStatusChange={setStatusFilter} onCreate={() => navigate('create')} onView={(id) => navigate('detail', id)} onEdit={startEditTicket} onDelete={(id) => void handleDeleteTicket(tickets.find((ticket) => ticket.id === id) || null)} onPrint={(id) => navigate('print', id)} canDelete={user.role === 'admin'} />}
-        {route === 'outstanding' && <OutstandingDrugsPage tickets={tickets} drugs={drugs} onView={(id) => navigate('detail', id)} />}
+        {route === 'outstanding' && (
+          <OutstandingDrugsPage
+            tickets={tickets}
+            drugs={drugs}
+            onView={(id) => navigate('detail', id)}
+            onReceiveDrug={handleReceiveDrug}
+          />
+        )}
         {route === 'detail' && activeTicket && <TicketDetailPage ticket={activeTicket} loading={loading} auditLoading={auditLoading} auditLogs={auditLogs} canDelete={user.role === 'admin'} onBack={() => navigate('list')} onPrint={() => navigate('print', activeTicket.id)} onDelete={() => void handleDeleteTicket(activeTicket)} onStatusChange={(status) => void handleStatusChange(status)} />}
         {route === 'users' && user.role === 'admin' && <UserManagementPage users={managedUsers} loading={usersLoading} currentUserId={user.id} onRefresh={loadUsers} onCreate={handleCreateUser} onUpdate={handleUpdateUser} onToggleActive={(managedUser) => void handleToggleUserActive(managedUser)} onResetPassword={(managedUser) => void handleResetUserPassword(managedUser)} />}
         {route === 'drugs' && (user.role === 'admin' || user.role === 'sub-admin') && <DrugManagementPage drugs={drugs} loading={drugsLoading} onRefresh={() => void loadDrugs()} onCreate={handleCreateDrug} onUpdate={handleUpdateDrug} onDelete={(drug) => void handleDeleteDrug(drug)} />}

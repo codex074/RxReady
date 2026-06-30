@@ -44,6 +44,7 @@ export type BackorderItemRow = {
   note: string | null;
   created_at: string;
   updated_at: string;
+  received_qty: number;
 };
 
 export type BackorderTicketWithItems = BackorderTicketRow & {

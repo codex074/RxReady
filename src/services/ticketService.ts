@@ -38,6 +38,7 @@ export function mapTicket(row: BackorderTicketWithItems): Ticket {
       unit: item.unit,
       note: item.note || '',
       status: normalizeStatus(row.status),
+      receivedQty: Number(item.received_qty ?? 0),
     })),
   };
 }
@@ -66,6 +67,7 @@ function mapPublicStatus(row: PublicTicketStatus): Ticket | null {
       unit: '',
       note: '',
       status,
+      receivedQty: 0,
     })),
     publicOnly: true,
     publicMessage: row.message || '',
@@ -114,6 +116,24 @@ export async function updateStatus(
   });
 
   if (result.error) throw result.error;
+}
+
+export type DrugReceiptResult = {
+  readyTicketIds: string[];
+  partialTicketIds: string[];
+  qtyAllocated: number;
+};
+
+export async function receiveDrugStock(
+  drugName: string,
+  unit: string,
+  qtyReceived: number,
+): Promise<DrugReceiptResult> {
+  const result = await requireSupabase().rpc('receive_drug_stock', {
+    payload: { drugName, unit, qtyReceived },
+  });
+  if (result.error) throw result.error;
+  return result.data as DrugReceiptResult;
 }
 
 export async function deleteTicket(ticketId: string): Promise<void> {
