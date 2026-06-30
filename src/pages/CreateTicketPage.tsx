@@ -3,11 +3,7 @@ import type { TicketForm } from '../types/backorder';
 import type { Drug } from '../types/drug';
 import { Icon } from '../components/Icon';
 import { drugNameColor } from '../utils/drugColor';
-import {
-  isDesktopApp,
-  isPatientLookupConfigured,
-  lookupPatientByHn,
-} from '../services/patientService';
+import { isDesktopApp, lookupPatientByHn } from '../services/patientService';
 
 type CreateTicketPageProps = {
   mode?: 'create' | 'edit';
@@ -49,25 +45,9 @@ export function CreateTicketPage({
 }: CreateTicketPageProps) {
   const editing = mode === 'edit';
   const desktopLookupAvailable = isDesktopApp();
-  const [lookupConfigured, setLookupConfigured] = useState(false);
   const [lookupLoading, setLookupLoading] = useState(false);
   const [lookupMessage, setLookupMessage] = useState('');
   const [lookupMessageType, setLookupMessageType] = useState<'success' | 'error' | 'info'>('info');
-
-  useEffect(() => {
-    if (!desktopLookupAvailable) return;
-    let cancelled = false;
-    void isPatientLookupConfigured()
-      .then((configured) => {
-        if (!cancelled) setLookupConfigured(configured);
-      })
-      .catch(() => {
-        if (!cancelled) setLookupConfigured(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [desktopLookupAvailable]);
 
   async function handlePatientLookup() {
     const hn = padHN(form.hn);
@@ -84,7 +64,6 @@ export function CreateTicketPage({
     try {
       const result = await lookupPatientByHn(hn);
       if (!result.ok) {
-        if (result.code === 'NOT_CONFIGURED') setLookupConfigured(false);
         setLookupMessageType('error');
         setLookupMessage(result.message);
         return;
@@ -121,7 +100,7 @@ export function CreateTicketPage({
                 }}
                 onBlur={(event) => { const padded = padHN(event.target.value); if (padded !== form.hn) onFieldChange('hn', padded); }}
                 onKeyDown={(event) => {
-                  if (event.key === 'Enter' && desktopLookupAvailable && lookupConfigured) {
+                  if (event.key === 'Enter' && desktopLookupAvailable && form.hn.trim()) {
                     event.preventDefault();
                     void handlePatientLookup();
                   }
@@ -135,7 +114,7 @@ export function CreateTicketPage({
                 <button
                   type="button"
                   onClick={() => void handlePatientLookup()}
-                  disabled={lookupLoading || !lookupConfigured || !form.hn.trim()}
+                  disabled={lookupLoading || !form.hn.trim()}
                   className="inline-flex shrink-0 cursor-pointer items-center gap-[6px] rounded-[11px] border border-[#bfdbfe] bg-[#eff6ff] px-[13px] text-[13px] font-bold text-[#1d4ed8] hover:bg-[#dbeafe] disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   <Icon name={lookupLoading ? 'refresh' : 'search'} size={16} />
@@ -155,7 +134,7 @@ export function CreateTicketPage({
                         : 'text-[#64748b]'
                   }`}
                 >
-                  {lookupMessage || (lookupConfigured ? 'พร้อมค้นหาจาก HOSxP' : 'กรอก HN เพื่อค้นหาชื่อผู้ป่วย')}
+                  {lookupMessage || 'กรอก HN แล้วกด Enter เพื่อค้นหาชื่อผู้ป่วย'}
                 </span>
               </div>
             )}
